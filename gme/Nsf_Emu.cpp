@@ -155,6 +155,7 @@ void Nsf_Emu::set_tempo_( double t )
 		play_period = long (playback_rate * clock_rate_ / (1000000.0 / clock_divisor * t));
 
 	apu.set_tempo( t );
+	apu.set_clock_rate( clock_rate_ );
 }
 
 blargg_err_t Nsf_Emu::init_sound()

@@ -6,18 +6,77 @@
 
 #include "blargg_common.h"
 #include "Blip_Buffer.h"
+#include <stdio.h>
+#include <math.h>
 
 class Nes_Apu;
 
+struct MIDICommand
+{
+	int tick;
+	unsigned char cmd;
+	unsigned char channel;
+	unsigned char d1;
+	unsigned char d2;
+};
+
 struct Nes_Osc
 {
+	int index;
 	unsigned char regs [4];
 	bool reg_written [4];
 	Blip_Buffer* output;
 	int length_counter;// length counter (0 if unused by oscillator)
 	int delay;      // delay until next (potential) transition
 	int last_amp;   // last amplitude oscillator was outputting
-	
+
+	// MIDI state:
+	double clock_rate;
+	blargg_vector<MIDICommand> midi_buf;
+	int last_period;
+	int last_m;
+	void midi_note_on(nes_time_t time) {
+		int p = period();
+		// Concert A# = 116.540940
+		//     NES A# = 116.521662
+		// Concert A  = 110
+		//     NES A  = 109.981803632778603
+		double f = clock_rate / (16 * (p + 1));
+		double n = round((log(f / 109.981803632778603) / log(2)) * 12);
+		// 21 = MIDI A1
+		int m = n + 21;
+		printf("%6d %*s %3d\n", time, index * 4, "", m);
+		last_period = p;
+		last_m = m;
+	}
+	void midi_note_off(nes_time_t time) {
+		if (last_m == 0) {
+			return;
+		}
+
+		printf("%6d %*s ---\n", time, index * 4, "");
+		last_m = 0;
+	}
+
+	void note_adj(nes_time_t time) {
+		if (last_m == 0) {
+			return;
+		}
+
+		midi_note_off(time);
+		midi_note_on(time);
+	}
+	void note_on(nes_time_t time) {
+		int p = period();
+		midi_note_off(time);
+		if (p >= 8) {
+			midi_note_on(time);
+		}
+	}
+	void note_off(nes_time_t time) {
+		midi_note_off(time);
+	}
+
 	void clock_length( int halt_mask );
 	int period() const {
 		return (regs [3] & 7) * 0x100 + (regs [2] & 0xFF);
@@ -25,6 +84,8 @@ struct Nes_Osc
 	void reset() {
 		delay = 0;
 		last_amp = 0;
+		last_period = 0;
+		last_m = 0;
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;

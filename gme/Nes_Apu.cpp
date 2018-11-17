@@ -85,6 +85,15 @@ void Nes_Apu::set_tempo( double t )
 		frame_period = (int) (frame_period / t) & ~1; // must be even
 }
 
+void Nes_Apu::set_clock_rate( double c )
+{
+	clock_rate_ = c;
+	for (int osc = 0; osc < osc_count; osc++)
+	{
+		oscs [osc]->clock_rate = clock_rate_;
+	}
+}
+
 void Nes_Apu::reset( bool pal_mode, int initial_dmc_dac )
 {
 	dmc.pal_mode = pal_mode;
@@ -306,15 +315,21 @@ void Nes_Apu::write_register( nes_time_t time, nes_addr_t addr, int data )
 			// handle DMC specially
 			dmc.write_register( reg, data );
 		}
+		else if ( reg == 2 )
+		{
+			osc->note_adj(time);
+		}
 		else if ( reg == 3 )
 		{
 			// load length counter
 			if ( (osc_enables >> osc_index) & 1 )
 				osc->length_counter = length_table [(data >> 3) & 0x1F];
-			
+
 			// reset square phase
-			if ( osc_index < 2 )
+			if ( osc_index < 2 ) {
 				((Nes_Square*) osc)->phase = Nes_Square::phase_range - 1;
+				osc->note_on(time);
+			}
 		}
 	}
 	else if ( addr == 0x4015 )

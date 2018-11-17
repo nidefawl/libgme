@@ -52,6 +52,7 @@ public:
 	
 	// Adjust frame period
 	void set_tempo( double );
+	void set_clock_rate( double );
 	
 	// Save/load exact emulation state
 	void save_state( apu_state_t* out ) const;
@@ -116,6 +117,7 @@ private:
 	Nes_Dmc             dmc;
 	
 	double tempo_;
+	double clock_rate_;
 	nes_time_t last_time; // has been run until this time in current frame
 	nes_time_t last_dmc_time;
 	nes_time_t earliest_irq_;
@@ -142,6 +144,8 @@ inline void Nes_Apu::osc_output( int osc, Blip_Buffer* buf )
 {
 	assert( (unsigned) osc < osc_count );
 	oscs [osc]->output = buf;
+	oscs [osc]->index = osc;
+	oscs [osc]->clock_rate = clock_rate_;
 }
 
 inline nes_time_t Nes_Apu::earliest_irq( nes_time_t ) const

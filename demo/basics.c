@@ -1,6 +1,6 @@
 /* C example that opens a game music file and records 10 seconds to "out.wav" */
 
-static char filename [] = "test.nsf"; /* opens this file (can be any music type) */
+static char filename [] = "solstice.nsf"; /* opens this file (can be any music type) */
 
 #include "gme/gme.h"
 
@@ -12,8 +12,8 @@ void handle_error( const char* str );
 
 int main()
 {
-	long sample_rate = 44100; /* number of samples per second */
-	int track = 0; /* index of track to play (0 = first) */
+	long sample_rate = 48000; /* number of samples per second */
+	int track = 3; /* index of track to play (0 = first) */
 	
 	/* Open music file in new emulator */
 	Music_Emu* emu;
@@ -27,7 +27,7 @@ int main()
 	wave_enable_stereo();
 	
 	/* Record 10 seconds of track */
-	while ( gme_tell( emu ) < 10 * 1000L )
+	while ( gme_tell( emu ) < (60 + 60 + 60) * 1000L )
 	{
 		/* Sample buffer */
 		#define buf_size 1024 /* can be any multiple of 2 */

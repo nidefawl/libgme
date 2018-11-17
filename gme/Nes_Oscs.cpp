@@ -115,6 +115,7 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 		if ( last_amp ) {
 			synth.offset( time, -last_amp, output );
 			last_amp = 0;
+			note_off(time);
 		}
 		
 		time += delay;
