@@ -27,6 +27,8 @@ struct Nes_Osc
 	unsigned char period_midi[0x800];
 	short period_cents[0x800];
 
+	virtual unsigned char midi_note_a() const = 0;
+
 	void set_clock_rate(double clock_rate) {
 		clock_rate_ = clock_rate;
 		// Pre-compute period->MIDI calculation:
@@ -37,8 +39,7 @@ struct Nes_Osc
 		for (int p = 0; p < 0x800; ++p) {
 			double f = clock_rate_ / (16 * (p + 1));
 			double n = (log(f / 109.981803632778603) / log(2)) * 12;
-			// 45 = MIDI A3 (110 Hz)
-			int m = round(n) + 45;
+			int m = round(n) + midi_note_a();
 			period_midi[p] = m;
 			period_cents[p] = (short)((n - round(n)) * 8191);
 		}
@@ -220,7 +221,10 @@ struct Nes_Square : Nes_Envelope
 	Synth const& synth; // shared between squares
 	
 	Nes_Square( Synth const* s ) : synth( *s ) { }
-	
+
+	// 45 = MIDI A3 (110 Hz)
+	unsigned char midi_note_a() const { return 45; }
+
 	void clock_sweep( int adjust );
 	void run( nes_time_t, nes_time_t );
 	void reset() {
@@ -241,6 +245,8 @@ struct Nes_Triangle : Nes_Osc
 	
 	int calc_amp() const;
 	unsigned char midi_volume() const { return 4 * 16; }
+	// 33 = MIDI A2 (110 Hz)
+	unsigned char midi_note_a() const { return 33; }
 	void run( nes_time_t, nes_time_t );
 	void clock_linear_counter();
 	void reset() {
@@ -257,7 +263,10 @@ struct Nes_Noise : Nes_Envelope
 {
 	int noise;
 	Blip_Synth<blip_med_quality,1> synth;
-	
+
+	// 45 = MIDI A3 (110 Hz)
+	unsigned char midi_note_a() const { return 45; }
+
 	void run( nes_time_t, nes_time_t );
 	void reset() {
 		noise = 1 << 14;
@@ -293,7 +302,10 @@ struct Nes_Dmc : Nes_Osc
 	Nes_Apu* apu;
 	
 	Blip_Synth<blip_med_quality,1> synth;
-	
+
+	// 45 = MIDI A3 (110 Hz)
+	unsigned char midi_note_a() const { return 45; }
+
 	void start();
 	void write_register( int, int );
 	void run( nes_time_t, nes_time_t );
