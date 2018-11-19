@@ -123,10 +123,6 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 	}
 	else
 	{
-		if ( last_amp == 0 ) {
-			note_on(time);
-		}
-
 		// handle duty select
 		int duty_select = (regs [0] >> 6) & 3;
 		int duty = 1 << duty_select; // 1, 2, 4, 2
@@ -143,7 +139,12 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 			if ( delta )
 				synth.offset( time, delta, output );
 		}
-		
+
+		if ( last_amp == 0 || this->reg_written[3] == true ) {
+			note_on(time);
+			this->reg_written[3] = false;
+		}
+
 		time += delay;
 		if ( time < end_time )
 		{
