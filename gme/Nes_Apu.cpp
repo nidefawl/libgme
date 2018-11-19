@@ -90,7 +90,7 @@ void Nes_Apu::set_clock_rate( double c )
 	clock_rate_ = c;
 	for (int osc = 0; osc < osc_count; osc++)
 	{
-		oscs [osc]->clock_rate = clock_rate_;
+		oscs [osc]->set_clock_rate(clock_rate_);
 	}
 }
 
@@ -157,10 +157,12 @@ void Nes_Apu::run_until( nes_time_t end_time )
 void Nes_Apu::run_until_( nes_time_t end_time )
 {
 	require( end_time >= last_time );
-	
+
 	if ( end_time == last_time )
 		return;
 	
+	// printf("apu abs: %d run_until_ %d\n", abs_time + last_time, end_time);
+
 	if ( last_dmc_time < end_time )
 	{
 		nes_time_t start = last_dmc_time;
@@ -246,6 +248,8 @@ inline void zero_apu_osc( T* osc, nes_time_t time )
 
 void Nes_Apu::end_frame( nes_time_t end_time )
 {
+	nes_time_t start = last_time;
+
 	if ( end_time > last_time )
 		run_until_( end_time );
 	
@@ -259,6 +263,13 @@ void Nes_Apu::end_frame( nes_time_t end_time )
 	}
 	
 	// make times relative to new frame
+	abs_time += end_time;
+
+	// Update abs_time for each oscilattor:
+	for ( int i = 0; i < osc_count; i++ )
+		oscs[i]->abs_time = abs_time;
+
+	// printf("apu abs: %ld\n", abs_time);
 	last_time -= end_time;
 	require( last_time >= 0 );
 	
@@ -307,17 +318,12 @@ void Nes_Apu::write_register( nes_time_t time, nes_addr_t addr, int data )
 		Nes_Osc* osc = oscs [osc_index];
 		
 		int reg = addr & 3;
-		osc->regs [reg] = data;
-		osc->reg_written [reg] = true;
-		
+		osc->reg_write(reg, data);
+
 		if ( osc_index == 4 )
 		{
 			// handle DMC specially
 			dmc.write_register( reg, data );
-		}
-		else if ( reg == 2 )
-		{
-			osc->note_adj(time);
 		}
 		else if ( reg == 3 )
 		{
@@ -328,7 +334,6 @@ void Nes_Apu::write_register( nes_time_t time, nes_addr_t addr, int data )
 			// reset square phase
 			if ( osc_index < 2 ) {
 				((Nes_Square*) osc)->phase = Nes_Square::phase_range - 1;
-				osc->note_on(time);
 			}
 		}
 	}

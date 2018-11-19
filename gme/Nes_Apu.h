@@ -115,7 +115,9 @@ private:
 	Nes_Noise           noise;
 	Nes_Triangle        triangle;
 	Nes_Dmc             dmc;
-	
+
+	nes_time_t abs_time;
+
 	double tempo_;
 	double clock_rate_;
 	nes_time_t last_time; // has been run until this time in current frame

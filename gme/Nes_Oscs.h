@@ -31,50 +31,68 @@ struct Nes_Osc
 	int last_amp;   // last amplitude oscillator was outputting
 
 	// MIDI state:
+	nes_time_t abs_time;
 	double clock_rate;
-	blargg_vector<MIDICommand> midi_buf;
-	int last_period;
-	int last_m;
-	void midi_note_on(nes_time_t time) {
-		int p = period();
+	unsigned char period_midi[0x800];
+	short period_cents[0x800];
+
+	void set_clock_rate(double clock_rate) {
+		// Pre-compute period->MIDI calculation:
 		// Concert A# = 116.540940
 		//     NES A# = 116.521662
 		// Concert A  = 110
 		//     NES A  = 109.981803632778603
-		double f = clock_rate / (16 * (p + 1));
-		double n = round((log(f / 109.981803632778603) / log(2)) * 12);
-		// 21 = MIDI A1
-		int m = n + 21;
-		printf("%6d %*s %3d\n", time, index * 4, "", m);
-		last_period = p;
-		last_m = m;
+		for (int p = 0; p < 0x800; ++p) {
+			double f = clock_rate / (16 * (p + 1));
+			double n = (log(f / 109.981803632778603) / log(2)) * 12;
+			// 21 = MIDI A1
+			int m = round(n) + 21;
+			period_midi[p] = m;
+			period_cents[p] = (short)((n - round(n)) * 8191);
+		}
 	}
+
+	virtual unsigned char midi_note() const { return period_midi[period()]; }
+	virtual unsigned char midi_volume() const = 0;
+
+	blargg_vector<MIDICommand> midi_buf;
+	int last_period;
+	unsigned char last_midi_note;
+
+	void midi_note_on(nes_time_t time) {
+		printf("%9d %*s %3d %3d\n", abs_time + time, index * 8, "", midi_note(), midi_volume());
+	}
+
 	void midi_note_off(nes_time_t time) {
-		if (last_m == 0) {
+		if (last_midi_note == 0) {
 			return;
 		}
 
-		printf("%6d %*s ---\n", time, index * 4, "");
-		last_m = 0;
+		printf("%9d %*s %3d %3d\n", abs_time + time, index * 8, "", last_midi_note, 0);
+
+		last_period = 0;
+		last_midi_note = 0;
 	}
 
-	void note_adj(nes_time_t time) {
-		if (last_m == 0) {
-			return;
-		}
-
-		midi_note_off(time);
-		midi_note_on(time);
-	}
 	void note_on(nes_time_t time) {
 		int p = period();
-		midi_note_off(time);
-		if (p >= 8) {
-			midi_note_on(time);
+		unsigned char m = period_midi[p];
+
+		if (m != last_midi_note) {
+			midi_note_off(abs_time + time);
+			midi_note_on(abs_time + time);
 		}
+
+		last_period = p;
+		last_midi_note = m;
 	}
 	void note_off(nes_time_t time) {
-		midi_note_off(time);
+		midi_note_off(abs_time + time);
+	}
+
+	virtual void reg_write(int reg, unsigned char value) {
+		regs [reg] = value;
+		reg_written [reg] = true;
 	}
 
 	void clock_length( int halt_mask );
@@ -85,7 +103,8 @@ struct Nes_Osc
 		delay = 0;
 		last_amp = 0;
 		last_period = 0;
-		last_m = 0;
+		last_midi_note = 0;
+		abs_time = 0;
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;
@@ -101,6 +120,7 @@ struct Nes_Envelope : Nes_Osc
 	
 	void clock_envelope();
 	int volume() const;
+	unsigned char midi_volume() const { return volume() * 16; }
 	void reset() {
 		envelope = 0;
 		env_delay = 0;
@@ -141,6 +161,7 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
+	unsigned char midi_volume() const { return 7 * 16; }
 	void run( nes_time_t, nes_time_t );
 	void clock_linear_counter();
 	void reset() {
@@ -203,6 +224,8 @@ struct Nes_Dmc : Nes_Osc
 	void reset();
 	int count_reads( nes_time_t, nes_time_t* ) const;
 	nes_time_t next_read_time() const;
+
+	virtual unsigned char midi_volume() const { return 7 * 16; }
 };
 
 #endif

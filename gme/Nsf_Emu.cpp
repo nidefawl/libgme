@@ -545,7 +545,7 @@ blargg_err_t Nsf_Emu::run_clocks( blip_time_t& duration, int )
 	check( next_play >= 0 );
 	if ( next_play < 0 )
 		next_play = 0;
-	
+
 	apu.end_frame( duration );
 	
 	#if !NSF_EMU_APU_ONLY

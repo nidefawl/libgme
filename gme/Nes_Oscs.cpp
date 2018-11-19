@@ -66,8 +66,8 @@ void Nes_Square::clock_sweep( int negative_adjust )
 			{
 				period += offset;
 				// rewrite period
-				regs [2] = period & 0xFF;
-				regs [3] = (regs [3] & ~7) | ((period >> 8) & 7);
+				regs[2] = period & 0xFF;
+				regs[3] = (regs [3] & ~7) | ((period >> 8) & 7);
 			}
 		}
 	}
@@ -123,6 +123,10 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 	}
 	else
 	{
+		if ( last_amp == 0 ) {
+			note_on(time);
+		}
+
 		// handle duty select
 		int duty_select = (regs [0] >> 6) & 3;
 		int duty = 1 << duty_select; // 1, 2, 4, 2
@@ -226,10 +230,17 @@ void Nes_Triangle::run( nes_time_t time, nes_time_t end_time )
 	time += delay;
 	if ( length_counter == 0 || linear_counter == 0 || timer_period < 3 )
 	{
+		if ( last_amp ) {
+			note_off(time);
+			last_amp = 0;
+		}
+
 		time = end_time;
 	}
 	else if ( time < end_time )
 	{
+		note_on(time);
+
 		Blip_Buffer* const output = this->output;
 		
 		int phase = this->phase;
