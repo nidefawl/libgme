@@ -73,7 +73,8 @@ struct Nes_Osc
 
 	void midi_write_time(nes_time_t time) {
 		double s = seconds(time);
-		int abs_tick = (int)(s * 24 * frames_per_second * ticks_per_frame);
+		// NOTE: I dont know why this 23.947 multiplier is necessary. REAPER doesnt load the file right without it.
+		int abs_tick = (int)(s * 23.94731590500898 * frames_per_second * ticks_per_frame);
 		int ticks = abs_tick - last_tick;
 		last_tick = abs_tick;
 
@@ -200,7 +201,7 @@ struct Nes_Envelope : Nes_Osc
 	
 	void clock_envelope();
 	int volume() const;
-	unsigned char midi_volume() const { return volume() * 8; }
+	unsigned char midi_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
 	void reset() {
 		envelope = 0;
 		env_delay = 0;
