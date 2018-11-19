@@ -13,7 +13,7 @@ void handle_error( const char* str );
 int main()
 {
 	long sample_rate = 48000; /* number of samples per second */
-	int track = 3; /* index of track to play (0 = first) */
+	int track = 5; /* index of track to play (0 = first) */
 	
 	/* Open music file in new emulator */
 	Music_Emu* emu;
