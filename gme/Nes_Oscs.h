@@ -32,18 +32,19 @@ struct Nes_Osc
 
 	// MIDI state:
 	nes_time_t abs_time;
-	double clock_rate;
+	double clock_rate_;
 	unsigned char period_midi[0x800];
 	short period_cents[0x800];
 
 	void set_clock_rate(double clock_rate) {
+		clock_rate_ = clock_rate;
 		// Pre-compute period->MIDI calculation:
 		// Concert A# = 116.540940
 		//     NES A# = 116.521662
 		// Concert A  = 110
 		//     NES A  = 109.981803632778603
 		for (int p = 0; p < 0x800; ++p) {
-			double f = clock_rate / (16 * (p + 1));
+			double f = clock_rate_ / (16 * (p + 1));
 			double n = (log(f / 109.981803632778603) / log(2)) * 12;
 			// 21 = MIDI A1
 			int m = round(n) + 21;
@@ -59,8 +60,12 @@ struct Nes_Osc
 	int last_period;
 	unsigned char last_midi_note;
 
+	double seconds(nes_time_t time) {
+		return (double)(abs_time + time) / clock_rate_;
+	}
+
 	void midi_note_on(nes_time_t time) {
-		printf("%9d %*s %3d %3d\n", abs_time + time, index * 8, "", midi_note(), midi_volume());
+		printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", midi_note(), midi_volume());
 	}
 
 	void midi_note_off(nes_time_t time) {
@@ -68,7 +73,7 @@ struct Nes_Osc
 			return;
 		}
 
-		printf("%9d %*s %3d %3d\n", abs_time + time, index * 8, "", last_midi_note, 0);
+		printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
 
 		last_period = 0;
 		last_midi_note = 0;
@@ -161,7 +166,7 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
-	unsigned char midi_volume() const { return 7 * 16; }
+	unsigned char midi_volume() const { return 4 * 16; }
 	void run( nes_time_t, nes_time_t );
 	void clock_linear_counter();
 	void reset() {

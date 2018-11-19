@@ -147,7 +147,6 @@ inline void Nes_Apu::osc_output( int osc, Blip_Buffer* buf )
 	assert( (unsigned) osc < osc_count );
 	oscs [osc]->output = buf;
 	oscs [osc]->index = osc;
-	oscs [osc]->clock_rate = clock_rate_;
 }
 
 inline nes_time_t Nes_Apu::earliest_irq( nes_time_t ) const
