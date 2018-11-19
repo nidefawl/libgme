@@ -112,10 +112,10 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 	const int volume = this->volume();
 	if ( volume == 0 || period < 8 || (period + offset) >= 0x800 )
 	{
+		note_off(time);
 		if ( last_amp ) {
 			synth.offset( time, -last_amp, output );
 			last_amp = 0;
-			note_off(time);
 		}
 		
 		time += delay;
