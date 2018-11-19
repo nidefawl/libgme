@@ -37,8 +37,8 @@ struct Nes_Osc
 		for (int p = 0; p < 0x800; ++p) {
 			double f = clock_rate_ / (16 * (p + 1));
 			double n = (log(f / 109.981803632778603) / log(2)) * 12;
-			// 33 = MIDI A2
-			int m = round(n) + 33;
+			// 45 = MIDI A3 (110 Hz)
+			int m = round(n) + 45;
 			period_midi[p] = m;
 			period_cents[p] = (short)((n - round(n)) * 8191);
 		}
