@@ -11,15 +11,6 @@
 
 class Nes_Apu;
 
-struct MIDICommand
-{
-	int tick;
-	unsigned char cmd;
-	unsigned char channel;
-	unsigned char d1;
-	unsigned char d2;
-};
-
 struct Nes_Osc
 {
 	int index;
@@ -46,8 +37,8 @@ struct Nes_Osc
 		for (int p = 0; p < 0x800; ++p) {
 			double f = clock_rate_ / (16 * (p + 1));
 			double n = (log(f / 109.981803632778603) / log(2)) * 12;
-			// 21 = MIDI A1
-			int m = round(n) + 21;
+			// 33 = MIDI A2
+			int m = round(n) + 33;
 			period_midi[p] = m;
 			period_cents[p] = (short)((n - round(n)) * 8191);
 		}
@@ -56,16 +47,96 @@ struct Nes_Osc
 	virtual unsigned char midi_note() const { return period_midi[period()]; }
 	virtual unsigned char midi_volume() const = 0;
 
-	blargg_vector<MIDICommand> midi_buf;
+	blargg_vector<unsigned char> mtrk;
+	size_t mtrk_p;
+	double last_s;
 	int last_period;
 	unsigned char last_midi_note;
+
+	static const int frames_per_second = 30;
+	static const int ticks_per_frame = 80;
 
 	double seconds(nes_time_t time) {
 		return (double)(abs_time + time) / clock_rate_;
 	}
 
+	void midi_ensure(size_t n) {
+		size_t new_size = mtrk.size();
+		while ((mtrk_p + n) > new_size) {
+			new_size *= 2;
+		}
+		if (new_size > mtrk.size()) {
+			mtrk.resize(new_size);
+		}
+	}
+
+	void midi_write_time(nes_time_t time) {
+		double s = seconds(time);
+		double delta = s - last_s;
+		last_s = s;
+
+		int ticks = (int)(delta * frames_per_second * ticks_per_frame);
+
+		unsigned char chr1 = (unsigned char)(ticks & 0x7F);
+		ticks >>= 7;
+		if (ticks > 0) {
+		    unsigned char chr2 = (unsigned char)((ticks & 0x7F) | 0x80);
+		    ticks >>= 7;
+		    if (ticks > 0) {
+		        unsigned char chr3 = (unsigned char)((ticks & 0x7F) | 0x80);
+		        ticks >>= 7;
+		        if (ticks > 0) {
+		            unsigned char chr4 = (unsigned char)((ticks & 0x7F) | 0x80);
+
+					midi_ensure(4);
+					unsigned char *p = mtrk.begin();
+					p[mtrk_p++] = chr4;
+					p[mtrk_p++] = chr3;
+					p[mtrk_p++] = chr2;
+					p[mtrk_p++] = chr1;
+		        } else {
+					midi_ensure(3);
+					unsigned char *p = mtrk.begin();
+					p[mtrk_p++] = chr3;
+					p[mtrk_p++] = chr2;
+					p[mtrk_p++] = chr1;
+		        }
+		    } else {
+				midi_ensure(2);
+				unsigned char *p = mtrk.begin();
+				p[mtrk_p++] = chr2;
+				p[mtrk_p++] = chr1;
+		    }
+		} else {
+			midi_ensure(1);
+			unsigned char *p = mtrk.begin();
+			p[mtrk_p++] = chr1;
+		}
+	}
+
+	void midi_write_2(unsigned char cmd, unsigned char data1) {
+		midi_ensure(2);
+		unsigned char *p = mtrk.begin();
+		p[mtrk_p++] = cmd;
+		p[mtrk_p++] = data1;
+	}
+
+	void midi_write_3(unsigned char cmd, unsigned char data1, unsigned char data2) {
+		midi_ensure(3);
+		unsigned char *p = mtrk.begin();
+		p[mtrk_p++] = cmd;
+		p[mtrk_p++] = data1;
+		p[mtrk_p++] = data2;
+	}
+
 	void midi_note_on(nes_time_t time) {
 		printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", midi_note(), midi_volume());
+		midi_write_time(time);
+		midi_write_3(
+			(0x90 | (index & 0x0F)),
+			midi_note(),
+			midi_volume()
+		);
 	}
 
 	void midi_note_off(nes_time_t time) {
@@ -74,6 +145,12 @@ struct Nes_Osc
 		}
 
 		printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
+		midi_write_time(time);
+		midi_write_3(
+			(0x80 | (index & 0x0F)),
+			last_midi_note,
+			0
+		);
 
 		last_period = 0;
 		last_midi_note = 0;
@@ -95,11 +172,6 @@ struct Nes_Osc
 		midi_note_off(abs_time + time);
 	}
 
-	virtual void reg_write(int reg, unsigned char value) {
-		regs [reg] = value;
-		reg_written [reg] = true;
-	}
-
 	void clock_length( int halt_mask );
 	int period() const {
 		return (regs [3] & 7) * 0x100 + (regs [2] & 0xFF);
@@ -110,6 +182,9 @@ struct Nes_Osc
 		last_period = 0;
 		last_midi_note = 0;
 		abs_time = 0;
+
+		mtrk.resize(30000);
+		mtrk_p = 0;
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;

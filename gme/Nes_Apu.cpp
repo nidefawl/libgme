@@ -141,6 +141,11 @@ void Nes_Apu::irq_changed()
 	}
 }
 
+Nes_Osc* Nes_Apu::get_osc(int index)
+{
+	return oscs[index];
+}
+
 // frames
 
 void Nes_Apu::run_until( nes_time_t end_time )
@@ -318,7 +323,8 @@ void Nes_Apu::write_register( nes_time_t time, nes_addr_t addr, int data )
 		Nes_Osc* osc = oscs [osc_index];
 		
 		int reg = addr & 3;
-		osc->reg_write(reg, data);
+		osc->regs [reg] = data;
+		osc->reg_written [reg] = true;
 
 		if ( osc_index == 4 )
 		{

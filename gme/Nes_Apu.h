@@ -94,7 +94,9 @@ public:
 	// Run DMC until specified time, so that any DMC memory reads can be
 	// accounted for (i.e. inserting CPU wait states).
 	void run_until( nes_time_t );
-	
+
+	Nes_Osc* get_osc(int index);
+
 public:
 	Nes_Apu();
 	BLARGG_DISABLE_NOTHROW
