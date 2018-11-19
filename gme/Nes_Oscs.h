@@ -49,7 +49,7 @@ struct Nes_Osc
 
 	blargg_vector<unsigned char> mtrk;
 	size_t mtrk_p;
-	double last_s;
+	int last_tick;
 	int last_period;
 	unsigned char last_midi_note;
 
@@ -72,10 +72,9 @@ struct Nes_Osc
 
 	void midi_write_time(nes_time_t time) {
 		double s = seconds(time);
-		double delta = s - last_s;
-		last_s = s;
-
-		int ticks = (int)(delta * frames_per_second * ticks_per_frame);
+		int abs_tick = (int)(s * frames_per_second * ticks_per_frame);
+		int ticks = abs_tick - last_tick;
+		last_tick = abs_tick;
 
 		unsigned char chr1 = (unsigned char)(ticks & 0x7F);
 		ticks >>= 7;
