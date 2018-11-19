@@ -73,7 +73,7 @@ struct Nes_Osc
 
 	void midi_write_time(nes_time_t time) {
 		double s = seconds(time);
-		int abs_tick = (int)(s * frames_per_second * ticks_per_frame);
+		int abs_tick = (int)(s * 24 * frames_per_second * ticks_per_frame);
 		int ticks = abs_tick - last_tick;
 		last_tick = abs_tick;
 
@@ -130,7 +130,7 @@ struct Nes_Osc
 	}
 
 	void midi_note_on(nes_time_t time) {
-		printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", midi_note(), midi_volume());
+		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", midi_note(), midi_volume());
 		midi_write_time(time);
 		midi_write_3(
 			(0x90 | (index & 0x0F)),
@@ -144,7 +144,7 @@ struct Nes_Osc
 			return;
 		}
 
-		printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
+		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
 		midi_write_time(time);
 		midi_write_3(
 			(0x80 | (index & 0x0F)),
@@ -200,7 +200,7 @@ struct Nes_Envelope : Nes_Osc
 	
 	void clock_envelope();
 	int volume() const;
-	unsigned char midi_volume() const { return volume() * 16; }
+	unsigned char midi_volume() const { return volume() * 8; }
 	void reset() {
 		envelope = 0;
 		env_delay = 0;
@@ -244,7 +244,7 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
-	unsigned char midi_volume() const { return 4 * 16; }
+	unsigned char midi_volume() const { return 8 * 8; }
 	// 33 = MIDI A2 (110 Hz)
 	unsigned char midi_note_a() const { return 33; }
 	void run( nes_time_t, nes_time_t );
