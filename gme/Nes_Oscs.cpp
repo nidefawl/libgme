@@ -230,10 +230,7 @@ void Nes_Triangle::run( nes_time_t time, nes_time_t end_time )
 	time += delay;
 	if ( length_counter == 0 || linear_counter == 0 || timer_period < 3 )
 	{
-		if ( last_amp ) {
-			note_off(time);
-			last_amp = 0;
-		}
+		note_off(time);
 
 		time = end_time;
 	}
