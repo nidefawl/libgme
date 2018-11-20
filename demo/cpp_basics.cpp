@@ -1,6 +1,6 @@
 // C++ example that opens a game music file and records 10 seconds to "out.wav"
 
-static char filename [] = "solstice.nsf"; /* opens this file (can be any music type) */
+static char filename [] = "bm.nsf"; /* opens this file (can be any music type) */
 
 #include "gme/Music_Emu.h"
 #include "gme/Nsf_Emu.h"
@@ -25,10 +25,10 @@ void fwrite_be_16(unsigned short n, FILE *m)
 	fwrite(&h, 1, 2, m);
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	long sample_rate = 48000; // number of samples per second
-	int track = 1; // index of track to play (0 = first)
+	int track = 3; // index of track to play (0 = first)
 
 	// Determine file type
 	gme_type_t file_type;
