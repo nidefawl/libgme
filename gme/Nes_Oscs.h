@@ -166,7 +166,7 @@ struct Nes_Osc
 
 		if (m != last_midi_note) {
 			note_off(time);
-			if (midi_channel_volume() != last_midi_channel_volume) {
+			if (midi_channel() != last_midi_channel || midi_channel_volume() != last_midi_channel_volume) {
 				midi_write_channel_volume(time);
 				last_midi_channel_volume = midi_channel_volume();
 			}
@@ -203,6 +203,7 @@ struct Nes_Osc
 
 		mtrk.resize(30000);
 		mtrk_p = 0;
+		midi_write_channel_volume(0);
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;
@@ -266,8 +267,8 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
-	unsigned char midi_note_volume() const { return 8 * 8; }
-	unsigned char midi_channel_volume() const { return 96; }
+	unsigned char midi_note_volume() const { return 96; }
+	unsigned char midi_channel_volume() const { return 112; }
 	// 33 = MIDI A2 (110 Hz)
 	unsigned char midi_note_a() const { return 33; }
 	unsigned char midi_channel() const { return 8; }
@@ -317,9 +318,25 @@ struct Nes_Noise : Nes_Envelope
 		period_midi[15] = 50;
 	}
 
+	unsigned char last_midi_note_volume;
 	unsigned char midi_note_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
 	unsigned char midi_channel_volume() const { return 96; }
 	unsigned char midi_channel() const { return 9; }
+
+	virtual void note_on(nes_time_t time) {
+		int p = period();
+		unsigned char m = period_midi[p];
+
+		if (m != last_midi_note || midi_note_volume() > last_midi_note_volume) {
+			note_off(time);
+			midi_write_note_on(time);
+			last_midi_channel = midi_channel();
+		}
+
+		last_midi_note = m;
+		last_midi_note_volume = midi_note_volume();
+	}
+
 	int period() const {
 		const int mode_flag = 0x80;
 		return (regs [2] & 15) | ((regs [2] & mode_flag) >> 3);
@@ -329,6 +346,9 @@ struct Nes_Noise : Nes_Envelope
 	void reset() {
 		noise = 1 << 14;
 		Nes_Envelope::reset();
+
+		last_midi_note_volume = 0;
+		last_midi_channel_volume = midi_channel_volume();
 	}
 };
 
