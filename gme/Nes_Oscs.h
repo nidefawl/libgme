@@ -225,8 +225,9 @@ struct Nes_Envelope : Nes_Osc
 		Nes_Osc::reset();
 	}
 
-	unsigned char midi_note_volume() const { return 96; }
-	unsigned char midi_channel_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
+	unsigned char midi_note_volume() const { return 112; }
+	// unsigned char midi_channel_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
+	unsigned char midi_channel_volume() const { return (unsigned char)(volume() * 8); }
 };
 
 // Nes_Square
@@ -267,8 +268,8 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
-	unsigned char midi_note_volume() const { return 96; }
-	unsigned char midi_channel_volume() const { return 112; }
+	unsigned char midi_note_volume() const { return 112; }
+	unsigned char midi_channel_volume() const { return 120; }
 	// 33 = MIDI A2 (110 Hz)
 	unsigned char midi_note_a() const { return 33; }
 	unsigned char midi_channel() const { return 8; }
