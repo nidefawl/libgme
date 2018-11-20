@@ -151,29 +151,30 @@ struct Nes_Osc
 		);
 	}
 
-	void midi_write_channel_volume(nes_time_t time) {
+	void midi_write_channel_volume(nes_time_t time, unsigned char channel) {
 		midi_write_time(time);
 		midi_write_3(
-			0xB0 | (midi_channel() & 0x0F),
+			0xB0 | (channel & 0x0F),
 			0x07,	// channel volume
 			midi_channel_volume()
 		);
 	}
 
 	virtual void note_on(nes_time_t time) {
-		int p = period();
-		unsigned char m = period_midi[p];
+		unsigned char m = midi_note();
 
 		if (m != last_midi_note) {
 			note_off(time);
 			if (midi_channel() != last_midi_channel || midi_channel_volume() != last_midi_channel_volume) {
-				midi_write_channel_volume(time);
+				midi_write_channel_volume(time, midi_channel());
 				last_midi_channel_volume = midi_channel_volume();
 			}
 			midi_write_note_on(time);
 			last_midi_channel = midi_channel();
 		} else if (midi_channel_volume() != last_midi_channel_volume) {
-			midi_write_channel_volume(time);
+			// Update last channel played on's volume since we don't really support switching
+			// duty cycle without restarting the note (i.e. playing it across multiple channels).
+			midi_write_channel_volume(time, last_midi_channel);
 			last_midi_channel_volume = midi_channel_volume();
 		}
 
@@ -203,7 +204,7 @@ struct Nes_Osc
 
 		mtrk.resize(30000);
 		mtrk_p = 0;
-		midi_write_channel_volume(0);
+		midi_write_channel_volume(0, midi_channel());
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;
@@ -383,20 +384,21 @@ struct Nes_Dmc : Nes_Osc
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
+
+	unsigned char midi_channel() const { return 10 + (regs[2] >> 7); }
+	unsigned char midi_note() const { return regs[2] & 0x7F; }
 	unsigned char midi_note_volume() const { return 96; }
 	unsigned char midi_channel_volume() const { return 96; }
 
-	void start();
+	void start(nes_time_t);
 	void write_register( int, int );
 	void run( nes_time_t, nes_time_t );
 	void recalc_irq();
-	void fill_buffer();
+	void fill_buffer(nes_time_t);
 	void reload_sample();
 	void reset();
 	int count_reads( nes_time_t, nes_time_t* ) const;
 	nes_time_t next_read_time() const;
-
-	virtual unsigned char midi_volume() const { return 7 * 16; }
 };
 
 #endif

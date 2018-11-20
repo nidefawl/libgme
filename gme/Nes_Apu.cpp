@@ -360,7 +360,7 @@ void Nes_Apu::write_register( nes_time_t time, nes_addr_t addr, int data )
 			recalc_irq = true;
 		}
 		else if ( !(old_enables & 0x10) ) {
-			dmc.start(); // dmc just enabled
+			dmc.start(time); // dmc just enabled
 		}
 		
 		if ( recalc_irq )

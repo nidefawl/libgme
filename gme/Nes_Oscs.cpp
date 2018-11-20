@@ -376,14 +376,15 @@ void Nes_Dmc::write_register( int addr, int data )
 	}
 }
 
-void Nes_Dmc::start()
+void Nes_Dmc::start(nes_time_t time)
 {
 	reload_sample();
-	fill_buffer();
+	fill_buffer(time);
 	recalc_irq();
+	note_on(time);
 }
 
-void Nes_Dmc::fill_buffer()
+void Nes_Dmc::fill_buffer(nes_time_t time)
 {
 	if ( !buf_full && length_counter )
 	{
@@ -394,15 +395,19 @@ void Nes_Dmc::fill_buffer()
 		if ( --length_counter == 0 )
 		{
 			if ( regs [0] & loop_flag ) {
+				note_on(time);
 				reload_sample();
 			}
 			else {
+				note_off(time);
 				apu->osc_enables &= ~0x10;
 				irq_flag = irq_enabled;
 				next_irq = Nes_Apu::no_irq;
 				apu->irq_changed();
 			}
 		}
+	} else {
+		note_off(time);
 	}
 }
 
@@ -456,6 +461,7 @@ void Nes_Dmc::run( nes_time_t time, nes_time_t end_time )
 					bits_remain = 8;
 					if ( !buf_full ) {
 						silence = true;
+						note_off(time);
 					}
 					else {
 						silence = false;
@@ -463,7 +469,7 @@ void Nes_Dmc::run( nes_time_t time, nes_time_t end_time )
 						buf_full = false;
 						if ( !output )
 							silence = true;
-						fill_buffer();
+						fill_buffer(time);
 					}
 				}
 			}

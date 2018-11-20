@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 		wave.write( buf, size );
 	}
 
-	int osc_count = 4;
+	int osc_count = 5;
 
 	// Write MIDI file:
 	FILE *m = fopen("out.mid", "wb");
