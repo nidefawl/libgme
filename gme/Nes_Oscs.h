@@ -188,7 +188,6 @@ struct Nes_Osc
 		midi_write_note_off(time);
 
 		last_midi_note = 0;
-		last_midi_channel = -1;
 	}
 
 	void clock_length( int halt_mask );
