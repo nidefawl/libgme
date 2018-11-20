@@ -47,14 +47,15 @@ struct Nes_Osc
 
 	virtual unsigned char midi_channel() const { return index; }
 	virtual unsigned char midi_note() const { return period_midi[period()]; }
-	virtual unsigned char midi_volume() const = 0;
+	virtual unsigned char midi_note_volume() const = 0;
+	virtual unsigned char midi_channel_volume() const = 0;
 
 	blargg_vector<unsigned char> mtrk;
 	size_t mtrk_p;
 	int last_tick;
-	int last_period;
 	unsigned char last_midi_note;
 	unsigned char last_midi_channel;
+	unsigned char last_midi_channel_volume;
 
 	static const int frames_per_second = 30;
 	static const int ticks_per_frame = 80;
@@ -75,8 +76,8 @@ struct Nes_Osc
 
 	void midi_write_time(nes_time_t time) {
 		double s = seconds(time);
-		// NOTE: I dont know why this 23.947 multiplier is necessary. REAPER doesnt load the file right without it.
-		int abs_tick = (int)(s * 23.94731590500898 * frames_per_second * ticks_per_frame);
+		// NOTE: I dont know why this 47.8946 multiplier is necessary. REAPER doesnt load the file right without it.
+		int abs_tick = (int)(s * 47.89463181001796 * frames_per_second * ticks_per_frame);
 		int ticks = abs_tick - last_tick;
 		last_tick = abs_tick;
 
@@ -132,27 +133,31 @@ struct Nes_Osc
 		p[mtrk_p++] = data2;
 	}
 
-	void midi_note_on(nes_time_t time) {
-		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", midi_note(), midi_volume());
+	void midi_write_note_on(nes_time_t time) {
 		midi_write_time(time);
 		midi_write_3(
 			(0x90 | (midi_channel() & 0x0F)),
 			midi_note(),
-			midi_volume()
+			midi_note_volume()
 		);
-
-		last_midi_channel = midi_channel();
 	}
 
-	void midi_note_off(nes_time_t time) {
-		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
+	void midi_write_note_off(nes_time_t time) {
 		midi_write_time(time);
 		midi_write_3(
 			(0x80 | (last_midi_channel & 0x0F)),
 			last_midi_note,
 			0
 		);
+	}
 
+	void midi_write_channel_volume(nes_time_t time) {
+		midi_write_time(time);
+		midi_write_3(
+			0xB0 | (midi_channel() & 0x0F),
+			0x07,	// channel volume
+			midi_channel_volume()
+		);
 	}
 
 	virtual void note_on(nes_time_t time) {
@@ -160,11 +165,18 @@ struct Nes_Osc
 		unsigned char m = period_midi[p];
 
 		if (m != last_midi_note) {
-			midi_note_off(abs_time + time);
-			midi_note_on(abs_time + time);
+			note_off(time);
+			if (midi_channel_volume() != last_midi_channel_volume) {
+				midi_write_channel_volume(time);
+				last_midi_channel_volume = midi_channel_volume();
+			}
+			midi_write_note_on(time);
+			last_midi_channel = midi_channel();
+		} else if (midi_channel_volume() != last_midi_channel_volume) {
+			midi_write_channel_volume(time);
+			last_midi_channel_volume = midi_channel_volume();
 		}
 
-		last_period = p;
 		last_midi_note = m;
 	}
 	virtual void note_off(nes_time_t time) {
@@ -172,9 +184,8 @@ struct Nes_Osc
 			return;
 		}
 
-		midi_note_off(abs_time + time);
+		midi_write_note_off(time);
 
-		last_period = 0;
 		last_midi_note = 0;
 		last_midi_channel = -1;
 	}
@@ -186,8 +197,8 @@ struct Nes_Osc
 	void reset() {
 		delay = 0;
 		last_amp = 0;
-		last_period = 0;
 		last_midi_note = 0;
+		last_midi_channel_volume = 0;
 		abs_time = 0;
 
 		mtrk.resize(30000);
@@ -210,25 +221,11 @@ struct Nes_Envelope : Nes_Osc
 	void reset() {
 		envelope = 0;
 		env_delay = 0;
-		last_volume = 0;
 		Nes_Osc::reset();
 	}
 
-	int last_volume;
-	unsigned char midi_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
-	void note_on(nes_time_t time) {
-		int p = period();
-		unsigned char m = period_midi[p];
-
-		if (m != last_midi_note || volume() > last_volume) {
-			midi_note_off(abs_time + time);
-			midi_note_on(abs_time + time);
-		}
-
-		last_volume = volume();
-		last_period = p;
-		last_midi_note = m;
-	}
+	unsigned char midi_note_volume() const { return 96; }
+	unsigned char midi_channel_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
 };
 
 // Nes_Square
@@ -269,7 +266,8 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
-	unsigned char midi_volume() const { return 8 * 8; }
+	unsigned char midi_note_volume() const { return 8 * 8; }
+	unsigned char midi_channel_volume() const { return 96; }
 	// 33 = MIDI A2 (110 Hz)
 	unsigned char midi_note_a() const { return 33; }
 	unsigned char midi_channel() const { return 8; }
@@ -319,6 +317,8 @@ struct Nes_Noise : Nes_Envelope
 		period_midi[15] = 50;
 	}
 
+	unsigned char midi_note_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
+	unsigned char midi_channel_volume() const { return 96; }
 	unsigned char midi_channel() const { return 9; }
 	int period() const {
 		const int mode_flag = 0x80;
@@ -363,6 +363,8 @@ struct Nes_Dmc : Nes_Osc
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
+	unsigned char midi_note_volume() const { return 96; }
+	unsigned char midi_channel_volume() const { return 96; }
 
 	void start();
 	void write_register( int, int );
