@@ -226,7 +226,6 @@ struct Nes_Envelope : Nes_Osc
 	}
 
 	unsigned char midi_note_volume() const { return 112; }
-	// unsigned char midi_channel_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
 	unsigned char midi_channel_volume() const { return (unsigned char)(volume() * 8); }
 };
 
@@ -268,7 +267,7 @@ struct Nes_Triangle : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 	
 	int calc_amp() const;
-	unsigned char midi_note_volume() const { return 112; }
+	unsigned char midi_note_volume() const { return 120; }
 	unsigned char midi_channel_volume() const { return 120; }
 	// 33 = MIDI A2 (110 Hz)
 	unsigned char midi_note_a() const { return 33; }
@@ -320,8 +319,8 @@ struct Nes_Noise : Nes_Envelope
 	}
 
 	unsigned char last_midi_note_volume;
-	unsigned char midi_note_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
-	unsigned char midi_channel_volume() const { return 96; }
+	unsigned char midi_note_volume() const { return (unsigned char)(volume() * 8); }
+	unsigned char midi_channel_volume() const { return 64; }
 	unsigned char midi_channel() const { return 9; }
 
 	virtual void note_on(nes_time_t time) {
