@@ -55,7 +55,7 @@ struct Nes_Osc
 	int last_tick;
 	unsigned char last_midi_note;
 	unsigned char last_midi_channel;
-	unsigned char last_midi_channel_volume;
+	unsigned char last_midi_channel_volume[16];
 
 	static const int frames_per_second = 30;
 	static const int ticks_per_frame = 80;
@@ -162,20 +162,21 @@ struct Nes_Osc
 
 	virtual void note_on(nes_time_t time) {
 		unsigned char m = midi_note();
+		unsigned char new_midi_channel = midi_channel();
 
 		if (m != last_midi_note) {
 			note_off(time);
-			if (midi_channel() != last_midi_channel || midi_channel_volume() != last_midi_channel_volume) {
-				midi_write_channel_volume(time, midi_channel());
-				last_midi_channel_volume = midi_channel_volume();
+			if (midi_channel_volume() != last_midi_channel_volume[new_midi_channel]) {
+				midi_write_channel_volume(time, new_midi_channel);
+				last_midi_channel_volume[new_midi_channel] = midi_channel_volume();
 			}
 			midi_write_note_on(time);
-			last_midi_channel = midi_channel();
-		} else if (midi_channel_volume() != last_midi_channel_volume) {
+			last_midi_channel = new_midi_channel;
+		} else if (midi_channel_volume() != last_midi_channel_volume[last_midi_channel]) {
 			// Update last channel played on's volume since we don't really support switching
 			// duty cycle without restarting the note (i.e. playing it across multiple channels).
 			midi_write_channel_volume(time, last_midi_channel);
-			last_midi_channel_volume = midi_channel_volume();
+			last_midi_channel_volume[last_midi_channel] = midi_channel_volume();
 		}
 
 		last_midi_note = m;
@@ -198,12 +199,12 @@ struct Nes_Osc
 		delay = 0;
 		last_amp = 0;
 		last_midi_note = 0;
-		last_midi_channel_volume = 0;
 		abs_time = 0;
+		for (int i = 0; i < 16; i++)
+			last_midi_channel_volume[i] = 0;
 
 		mtrk.resize(30000);
 		mtrk_p = 0;
-		// midi_write_channel_volume(0, midi_channel());
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;
@@ -348,7 +349,6 @@ struct Nes_Noise : Nes_Envelope
 		Nes_Envelope::reset();
 
 		last_midi_note_volume = 0;
-		last_midi_channel_volume = midi_channel_volume();
 	}
 };
 
