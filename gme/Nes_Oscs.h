@@ -54,6 +54,7 @@ struct Nes_Osc
 	int last_tick;
 	int last_period;
 	unsigned char last_midi_note;
+	unsigned char last_midi_channel;
 
 	static const int frames_per_second = 30;
 	static const int ticks_per_frame = 80;
@@ -139,6 +140,8 @@ struct Nes_Osc
 			midi_note(),
 			midi_volume()
 		);
+
+		last_midi_channel = midi_channel();
 	}
 
 	void midi_note_off(nes_time_t time) {
@@ -149,13 +152,14 @@ struct Nes_Osc
 		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
 		midi_write_time(time);
 		midi_write_3(
-			(0x80 | (midi_channel() & 0x0F)),
+			(0x80 | (last_midi_channel & 0x0F)),
 			last_midi_note,
 			0
 		);
 
 		last_period = 0;
 		last_midi_note = 0;
+		last_midi_channel = -1;
 	}
 
 	virtual void note_on(nes_time_t time) {
@@ -242,7 +246,9 @@ struct Nes_Square : Nes_Envelope
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
+	unsigned char midi_channel() const { return (index * 4) + duty_select(); }
 
+	int duty_select() const { return (regs [0] >> 6) & 3; }
 	void clock_sweep( int adjust );
 	void run( nes_time_t, nes_time_t );
 	void reset() {
@@ -265,6 +271,8 @@ struct Nes_Triangle : Nes_Osc
 	unsigned char midi_volume() const { return 8 * 8; }
 	// 33 = MIDI A2 (110 Hz)
 	unsigned char midi_note_a() const { return 33; }
+	unsigned char midi_channel() const { return 8; }
+
 	void run( nes_time_t, nes_time_t );
 	void clock_linear_counter();
 	void reset() {
