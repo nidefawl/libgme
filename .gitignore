@@ -6,6 +6,9 @@ install_manifest.txt
 *.pc
 *.dylib
 *.nsf
-*.wav*
+*.mid
+*.wav
+*.reapeaks
+*.RPP
 .DS_Store
 demo/demo
