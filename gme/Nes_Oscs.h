@@ -204,7 +204,7 @@ struct Nes_Osc
 
 		mtrk.resize(30000);
 		mtrk_p = 0;
-		midi_write_channel_volume(0, midi_channel());
+		// midi_write_channel_volume(0, midi_channel());
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;
@@ -382,11 +382,49 @@ struct Nes_Dmc : Nes_Osc
 	
 	Blip_Synth<blip_med_quality,1> synth;
 
+	mutable blargg_vector<int> channel_address_map;
+
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
 
-	unsigned char midi_channel() const { return 10 + (regs[2] >> 7); }
-	unsigned char midi_note() const { return regs[2] & 0x7F; }
+	unsigned char midi_channel() const {
+		if (channel_address_map.begin() == 0) {
+			channel_address_map.resize(6);
+			for (int i = 0; i < 6; i++) {
+				channel_address_map.begin()[i] = -1;
+			}
+		}
+
+		// Find existing channel for address:
+		int chan = -1;
+		int free_slot = -1;
+		int* p = channel_address_map.begin();
+		for (int i = 0; i < 6; i++) {
+			if (p[i] == regs[2]) {
+				chan = i;
+				break;
+			}
+			if (free_slot == -1 && p[i] == -1) {
+				free_slot = i;
+			}
+		}
+
+		if (chan == -1) {
+			if (free_slot == -1) {
+				printf("No free MIDI channels for DMC sample 0x%02X\n", regs[2]);
+				return 15;
+			} else {
+				p[free_slot] = regs[2];
+				chan = free_slot;
+				printf("MIDI channel %d allocated for DMC sample 0x%02X\n", 10 + chan, regs[2]);
+			}
+		}
+
+		return 10 + chan;
+	}
+	unsigned char midi_note() const {
+		return period_midi[period];
+	}
 	unsigned char midi_note_volume() const { return 96; }
 	unsigned char midi_channel_volume() const { return 96; }
 
