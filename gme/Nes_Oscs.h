@@ -29,7 +29,7 @@ struct Nes_Osc
 
 	virtual unsigned char midi_note_a() const = 0;
 
-	void set_clock_rate(double clock_rate) {
+	virtual void set_clock_rate(double clock_rate) {
 		clock_rate_ = clock_rate;
 		// Pre-compute period->MIDI calculation:
 		// Concert A# = 116.540940
@@ -45,6 +45,7 @@ struct Nes_Osc
 		}
 	}
 
+	virtual unsigned char midi_channel() const { return index; }
 	virtual unsigned char midi_note() const { return period_midi[period()]; }
 	virtual unsigned char midi_volume() const = 0;
 
@@ -134,7 +135,7 @@ struct Nes_Osc
 		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", midi_note(), midi_volume());
 		midi_write_time(time);
 		midi_write_3(
-			(0x90 | (index & 0x0F)),
+			(0x90 | (midi_channel() & 0x0F)),
 			midi_note(),
 			midi_volume()
 		);
@@ -148,7 +149,7 @@ struct Nes_Osc
 		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
 		midi_write_time(time);
 		midi_write_3(
-			(0x80 | (index & 0x0F)),
+			(0x80 | (midi_channel() & 0x0F)),
 			last_midi_note,
 			0
 		);
@@ -157,7 +158,7 @@ struct Nes_Osc
 		last_midi_note = 0;
 	}
 
-	void note_on(nes_time_t time) {
+	virtual void note_on(nes_time_t time) {
 		int p = period();
 		unsigned char m = period_midi[p];
 
@@ -169,12 +170,12 @@ struct Nes_Osc
 		last_period = p;
 		last_midi_note = m;
 	}
-	void note_off(nes_time_t time) {
+	virtual void note_off(nes_time_t time) {
 		midi_note_off(abs_time + time);
 	}
 
 	void clock_length( int halt_mask );
-	int period() const {
+	virtual int period() const {
 		return (regs [3] & 7) * 0x100 + (regs [2] & 0xFF);
 	}
 	void reset() {
@@ -201,11 +202,27 @@ struct Nes_Envelope : Nes_Osc
 	
 	void clock_envelope();
 	int volume() const;
-	unsigned char midi_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
 	void reset() {
 		envelope = 0;
 		env_delay = 0;
+		last_volume = 0;
 		Nes_Osc::reset();
+	}
+
+	int last_volume;
+	unsigned char midi_volume() const { return (unsigned char)(log(pow(volume() * 8, 1.2) + 1) * 16); }
+	void note_on(nes_time_t time) {
+		int p = period();
+		unsigned char m = period_midi[p];
+
+		if (m != last_midi_note || volume() > last_volume) {
+			midi_note_off(abs_time + time);
+			midi_note_on(abs_time + time);
+		}
+
+		last_volume = volume();
+		last_period = p;
+		last_midi_note = m;
 	}
 };
 
@@ -267,6 +284,22 @@ struct Nes_Noise : Nes_Envelope
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
+
+	void set_clock_rate(double clock_rate) {
+		clock_rate_ = clock_rate;
+
+		// dumb map to GM percussion notes for now:
+		for (int i = 0; i < 16; i++) {
+			period_midi[i] = 35 + (15 - i);
+			period_midi[i+16] = 81 - i;
+		}
+	}
+
+	unsigned char midi_channel() const { return 9; }
+	int period() const {
+		const int mode_flag = 0x80;
+		return (regs [2] & 15) | ((regs [2] & mode_flag) >> 3);
+	}
 
 	void run( nes_time_t, nes_time_t );
 	void reset() {

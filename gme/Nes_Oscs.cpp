@@ -514,6 +514,8 @@ void Nes_Noise::run( nes_time_t time, nes_time_t end_time )
 		
 		if ( !volume )
 		{
+			note_off(time);
+
 			// round to next multiple of period
 			time += (end_time - time + period - 1) / period * period;
 			
@@ -526,8 +528,10 @@ void Nes_Noise::run( nes_time_t time, nes_time_t end_time )
 		}
 		else
 		{
+			note_on(time);
+
 			Blip_Buffer* const output = this->output;
-			
+
 			// using resampled time avoids conversion in synth.offset()
 			blip_resampled_time_t rperiod = output->resampled_duration( period );
 			blip_resampled_time_t rtime = output->resampled_time( time );
