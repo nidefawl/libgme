@@ -145,10 +145,6 @@ struct Nes_Osc
 	}
 
 	void midi_note_off(nes_time_t time) {
-		if (last_midi_note == 0) {
-			return;
-		}
-
 		// printf("%11f %*s %3d %3d\n", seconds(time), index * 8, "", last_midi_note, 0);
 		midi_write_time(time);
 		midi_write_3(
@@ -157,9 +153,6 @@ struct Nes_Osc
 			0
 		);
 
-		last_period = 0;
-		last_midi_note = 0;
-		last_midi_channel = -1;
 	}
 
 	virtual void note_on(nes_time_t time) {
@@ -175,7 +168,15 @@ struct Nes_Osc
 		last_midi_note = m;
 	}
 	virtual void note_off(nes_time_t time) {
+		if (last_midi_note == 0) {
+			return;
+		}
+
 		midi_note_off(abs_time + time);
+
+		last_period = 0;
+		last_midi_note = 0;
+		last_midi_channel = -1;
 	}
 
 	void clock_length( int halt_mask );
