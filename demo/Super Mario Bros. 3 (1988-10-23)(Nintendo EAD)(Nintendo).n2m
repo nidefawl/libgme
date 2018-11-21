@@ -1,0 +1,18 @@
+dmc 80 96 10 36
+dmc 82 96 10 38
+noise 03 42
+noise 00 51
+noise 01 52
+noise 02 36
+noise 04 44
+noise 05 38
+noise 06 44
+noise 07 42
+noise 08 44
+noise 09 46
+noise 0A 41
+noise 0B 43
+noise 0C 45
+noise 0D 47
+noise 0E 48
+noise 0F 50
