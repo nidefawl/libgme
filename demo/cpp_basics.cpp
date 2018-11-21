@@ -93,6 +93,7 @@ int main(int argc, char **argv)
 				printf("\n");
 			}
 		}
+		fclose(sup);
 	}
 
 	// Start track
@@ -139,6 +140,21 @@ int main(int argc, char **argv)
 	}
 
 	fclose(m);
+
+	// Write supporting n2m file if it didn't exist before:
+	if (sup == NULL) {
+		Nes_Noise *noise = (Nes_Noise *)apu->get_osc(3);
+		Nes_Dmc   *dmc   = (Nes_Dmc   *)apu->get_osc(4);
+
+		sup = fopen(support_filename, "w");
+
+		// Emit default noise mapping:
+		for (int i = 0; i < 32; i++) {
+			fprintf(sup, "noise %02X %d\n", i, noise->period_midi[i]);
+		}
+
+		fclose(sup);
+	}
 
 	// Cleanup
 	delete emu;
