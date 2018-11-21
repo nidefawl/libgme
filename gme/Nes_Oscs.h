@@ -285,11 +285,30 @@ struct Nes_Triangle : Nes_Osc
 			nes_time_t timer_period );
 };
 
+struct Noise_Remapping {
+	int src_period;
+	int dest_midi_note;
+};
+
 // Nes_Noise
 struct Nes_Noise : Nes_Envelope
 {
 	int noise;
 	Blip_Synth<blip_med_quality,1> synth;
+
+	// Support for remapping noise period to specific MIDI note:
+	mutable blargg_vector<Noise_Remapping> remappings;
+	Noise_Remapping *find_remapping() const {
+		Noise_Remapping *r = remappings.begin();
+		if (r != 0) {
+			for (int i = 0; i < remappings.size(); i++) {
+				if (period() == r[i].src_period) {
+					return r + i;
+				}
+			}
+		}
+		return 0;
+	}
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
@@ -321,12 +340,20 @@ struct Nes_Noise : Nes_Envelope
 
 	unsigned char last_midi_note_volume;
 	unsigned char midi_note_volume() const { return (unsigned char)(volume() * 8); }
-	unsigned char midi_channel_volume() const { return 64; }
+	unsigned char midi_channel_volume() const { return 120; }
 	unsigned char midi_channel() const { return 9; }
 
+	unsigned char midi_note() const {
+		Noise_Remapping *r = find_remapping();
+		if (r != 0) {
+			return r->dest_midi_note;
+		}
+
+		return period_midi[period()];
+	}
+
 	virtual void note_on(nes_time_t time) {
-		int p = period();
-		unsigned char m = period_midi[p];
+		unsigned char m = midi_note();
 
 		if (m != last_midi_note || midi_note_volume() > last_midi_note_volume) {
 			note_off(time);
@@ -389,11 +416,11 @@ struct Nes_Dmc : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 
 	mutable blargg_vector<int> channel_address_map;
-	blargg_vector<Dmc_Remapping> remappings;
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
 
+	blargg_vector<Dmc_Remapping> remappings;
 	Dmc_Remapping *find_remapping() const {
 		Dmc_Remapping *r = remappings.begin();
 		if (r != 0) {

@@ -85,7 +85,10 @@ int main(int argc, char **argv)
 				r->dest_midi_chan--;
 				printf("%02X %d %d %d\n", r->src_address, r->src_midi_note, r->dest_midi_chan, r->dest_midi_note);
 			} else if (strcmp(kind, "noise") == 0) {
-				printf("\n");
+				noise->remappings.resize(noise->remappings.size() + 1);
+				Noise_Remapping *r = noise->remappings.end() - 1;
+				fscanf(sup, "%02X %d", &r->src_period, &r->dest_midi_note);
+				printf("%02X %d\n", r->src_period, r->dest_midi_note);
 			} else {
 				printf("\n");
 			}
