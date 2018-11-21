@@ -10,6 +10,7 @@ static char default_filename [] = "solstice.nsf"; /* opens this file (can be any
 #include "Wave_Writer.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 void handle_error( const char* str );
 
@@ -41,6 +42,11 @@ int main(int argc, char **argv)
 		track = atoi(argv[2]);
 	}
 
+	// replace '.nsf' extension with '.n2m' and try to open that file:
+	char *support_filename = (char *)malloc(strlen(filename)+1);
+	strcpy(support_filename, filename);
+	strcpy(strrchr(support_filename, '.')+1, "n2m");
+
 	// Determine file type
 	gme_type_t file_type;
 	handle_error( gme_identify_file( filename, &file_type ) );
@@ -56,9 +62,39 @@ int main(int argc, char **argv)
 	// Load music file into emulator
 	handle_error( emu->load_file( filename ) );
 	
+	Nes_Apu *apu = ((Nsf_Emu*)emu)->apu_();
+
+	// Load supporting MIDI conversion data for noise and DMC channels:
+	FILE *sup = fopen(support_filename, "r");
+	if (sup != NULL) {
+		Nes_Noise *noise = (Nes_Noise *)apu->get_osc(3);
+		Nes_Dmc   *dmc   = (Nes_Dmc   *)apu->get_osc(4);
+
+		char kind[16];
+		while (!feof(sup)) {
+			strcpy(kind, "");
+			int ret = fscanf(sup, "%15s", kind);
+			if (ret < 0) break;
+
+			printf("%s ", kind);
+			if (strcmp(kind, "dmc") == 0) {
+				dmc->remappings.resize(dmc->remappings.size() + 1);
+				Dmc_Remapping *r = dmc->remappings.end() - 1;
+				fscanf(sup, "%02X %d %d %d", &r->src_address, &r->src_midi_note, &r->dest_midi_chan, &r->dest_midi_note);
+				// MIDI Channel numbers from base-1 to base-0:
+				r->dest_midi_chan--;
+				printf("%02X %d %d %d\n", r->src_address, r->src_midi_note, r->dest_midi_chan, r->dest_midi_note);
+			} else if (strcmp(kind, "noise") == 0) {
+				printf("\n");
+			} else {
+				printf("\n");
+			}
+		}
+	}
+
 	// Start track
 	handle_error( emu->start_track( track ) );
-	
+
 	// Begin writing to wave file
 	Wave_Writer wave( sample_rate, "out.wav" );
 	wave.enable_stereo();
@@ -90,8 +126,6 @@ int main(int argc, char **argv)
 	fwrite_be_16(osc_count, m);
 	// division:
 	fwrite_be_16(0x8000 | (((0x80 - Nes_Osc::frames_per_second) & 0x7F) << 8) | (Nes_Osc::ticks_per_frame & 0xFF), m);
-
-	Nes_Apu *apu = ((Nsf_Emu*)emu)->apu_();
 
 	for (int i = 0; i < osc_count; i++) {
 		Nes_Osc *osc = apu->get_osc(i);

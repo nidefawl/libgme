@@ -352,6 +352,13 @@ struct Nes_Noise : Nes_Envelope
 	}
 };
 
+struct Dmc_Remapping {
+	int src_address;
+	int src_midi_note;
+	int dest_midi_chan;
+	int dest_midi_note;
+};
+
 // Nes_Dmc
 struct Nes_Dmc : Nes_Osc
 {
@@ -382,11 +389,29 @@ struct Nes_Dmc : Nes_Osc
 	Blip_Synth<blip_med_quality,1> synth;
 
 	mutable blargg_vector<int> channel_address_map;
+	blargg_vector<Dmc_Remapping> remappings;
 
 	// 45 = MIDI A3 (110 Hz)
 	unsigned char midi_note_a() const { return 45; }
 
+	Dmc_Remapping *find_remapping() const {
+		Dmc_Remapping *r = remappings.begin();
+		if (r != 0) {
+			for (int i = 0; i < remappings.size(); i++) {
+				if (regs[2] == r[i].src_address && period_midi[period] == r[i].src_midi_note) {
+					return r + i;
+				}
+			}
+		}
+		return 0;
+	}
+
 	unsigned char midi_channel() const {
+		Dmc_Remapping *r = find_remapping();
+		if (r != 0) {
+			return r->dest_midi_chan;
+		}
+
 		if (channel_address_map.begin() == 0) {
 			channel_address_map.resize(6);
 			for (int i = 0; i < 6; i++) {
@@ -422,6 +447,11 @@ struct Nes_Dmc : Nes_Osc
 		return 10 + chan;
 	}
 	unsigned char midi_note() const {
+		Dmc_Remapping *r = find_remapping();
+		if (r != 0) {
+			return r->dest_midi_note;
+		}
+
 		return period_midi[period];
 	}
 	unsigned char midi_note_volume() const { return 96; }
