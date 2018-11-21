@@ -10,5 +10,6 @@ install_manifest.txt
 *.wav
 *.reapeaks
 *.RPP
+*.RPP-bak
 .DS_Store
 demo/demo
