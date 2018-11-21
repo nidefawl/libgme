@@ -58,7 +58,7 @@ struct Nes_Osc
 	unsigned char last_midi_channel_volume[16];
 	int note_on_period;
 	short last_wheel;
-	short last_wheel_emit;
+	short last_wheel_emit[16];
 
 	static const int frames_per_second = 30;
 	static const int ticks_per_frame = 80;
@@ -163,7 +163,7 @@ struct Nes_Osc
 		);
 	}
 
-	const int wheel_threshold = 256;
+	const int wheel_threshold = 384;
 
 	virtual void note_on(nes_time_t time) {
 		unsigned char m = midi_note();
@@ -176,14 +176,16 @@ struct Nes_Osc
 				last_midi_channel_volume[new_midi_channel] = midi_channel_volume();
 			}
 			note_on_period = period();
-			if (abs(period_cents[note_on_period]-0x2000) < wheel_threshold && last_wheel_emit != 0x2000) {
+			if (abs(period_cents[note_on_period]-0x2000) < wheel_threshold &&
+				last_wheel_emit[new_midi_channel] != 0x2000)
+			{
 				// Reset pitch wheel to 0:
-				last_wheel_emit = 0x2000;
+				last_wheel_emit[new_midi_channel] = 0x2000;
 				midi_write_time(time);
 				midi_write_3(
 					0xE0 | last_midi_channel,
-					last_wheel_emit & 0x7F,
-					(last_wheel_emit >> 7) & 0x7F
+					last_wheel_emit[new_midi_channel] & 0x7F,
+					(last_wheel_emit[new_midi_channel] >> 7) & 0x7F
 				);
 			}
 			midi_write_note_on(time);
@@ -199,8 +201,10 @@ struct Nes_Osc
 
 		// Period is changing too finely for MIDI note to change:
 		int wheel = period_cents[period()];
-		if (abs(wheel-0x2000) >= wheel_threshold || abs(period_cents[note_on_period]-wheel) >= wheel_threshold) {
-			if (last_wheel != wheel) {
+		if (abs(wheel-0x2000) >= wheel_threshold ||
+			abs(period_cents[note_on_period]-wheel) >= wheel_threshold)
+		{
+			if (last_wheel_emit[last_midi_channel] != wheel) {
 				// Emit pitch wheel change:
 				midi_write_time(time);
 				midi_write_3(
@@ -208,11 +212,11 @@ struct Nes_Osc
 					wheel & 0x7F,
 					(wheel >> 7) & 0x7F
 				);
-				last_wheel_emit = wheel;
+				last_wheel_emit[last_midi_channel] = wheel;
 			}
 		}
 
-		last_wheel = wheel;
+		// last_wheel = wheel;
 		last_midi_note = m;
 	}
 	virtual void note_off(nes_time_t time) {
@@ -234,8 +238,10 @@ struct Nes_Osc
 		last_amp = 0;
 		last_midi_note = 0;
 		abs_time = 0;
-		for (int i = 0; i < 16; i++)
+		for (int i = 0; i < 16; i++) {
 			last_midi_channel_volume[i] = 0;
+			last_wheel_emit[i] = 0x2000;
+		}
 
 		mtrk.resize(30000);
 		mtrk_p = 0;
