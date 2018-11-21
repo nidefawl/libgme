@@ -99,8 +99,13 @@ int main(int argc, char **argv)
 	// Start track
 	handle_error( emu->start_track( track ) );
 
+	// replace '.nsf' extension with '.wav':
+	char *wav_filename = (char *)malloc(strlen(filename)+1);
+	strcpy(wav_filename, filename);
+	strcpy(strrchr(wav_filename, '.')+1, "wav");
+
 	// Begin writing to wave file
-	Wave_Writer wave( sample_rate, "out.wav" );
+	Wave_Writer wave( sample_rate, wav_filename );
 	wave.enable_stereo();
 	
 	// Record 10 seconds of track
@@ -119,8 +124,13 @@ int main(int argc, char **argv)
 
 	int osc_count = 5;
 
-	// Write MIDI file:
-	FILE *m = fopen("out.mid", "wb");
+	// replace '.nsf' extension with '.mid':
+	char *mid_filename = (char *)malloc(strlen(filename)+1);
+	strcpy(mid_filename, filename);
+	strcpy(strrchr(mid_filename, '.')+1, "mid");
+
+	// Write MIDI file, format 1:
+	FILE *m = fopen(mid_filename, "wb");
 	fwrite("MThd", 1, 4, m);
 	// MThd length:
 	fwrite_be_32(6, m);
