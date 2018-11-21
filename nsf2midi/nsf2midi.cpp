@@ -1,6 +1,5 @@
-// C++ example that opens a game music file and records 10 seconds to "out.wav"
-
-static char default_filename [] = "solstice.nsf"; /* opens this file (can be any music type) */
+// Tool that converts NSF music to MIDI sequence with support for noise-channel and DMC-channel mapping
+// to MIDI channels and notes.
 
 #include "gme/Music_Emu.h"
 #include "gme/Nsf_Emu.h"
@@ -30,10 +29,14 @@ int main(int argc, char **argv)
 {
 	long sample_rate = 48000; // number of samples per second
 
-	const char *filename = default_filename;
-	int track = 1; // index of track to play (0 = first)
+	const char *filename;
+	int track = 0; // index of track to play (0 = first)
 
 	argc--;
+	if (argc == 0) {
+		fprintf(stderr, "nsf2midi <file.nsf> <track>\n");
+		return -1;
+	}
 
 	if (argc >= 1) {
 		filename = argv[1];
