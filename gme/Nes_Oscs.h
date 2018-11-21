@@ -452,7 +452,7 @@ struct Nes_Dmc : Nes_Osc
 			} else {
 				p[free_slot] = regs[2];
 				chan = free_slot;
-				printf("MIDI channel %d allocated for DMC sample 0x%02X\n", 10 + chan, regs[2]);
+				printf("MIDI channel %d allocated for DMC sample 0x%02X\n", 10 + chan + 1, regs[2]);
 			}
 		}
 
