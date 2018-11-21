@@ -1,0 +1,10 @@
+dmc 00 96 10 36
+dmc 03 96 10 38
+noise 00 42
+noise 01 44
+noise 02 44
+noise 03 46
+noise 04 46
+noise 05 46
+noise 06 46
+noise 0E 38
