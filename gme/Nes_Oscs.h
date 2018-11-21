@@ -316,26 +316,11 @@ struct Nes_Noise : Nes_Envelope
 	void set_clock_rate(double clock_rate) {
 		clock_rate_ = clock_rate;
 
-		// dumb map to GM percussion notes for now:
+		// dumb map to GM percussion notes by default:
 		for (int i = 0; i < 16; i++) {
+			period_midi[i] = 36 + i;
 			period_midi[i+16] = 81 - i;
 		}
-		period_midi[0] = 51;
-		period_midi[1] = 52;
-		period_midi[2] = 36;
-		period_midi[3] = 49;
-		period_midi[4] = 44;
-		period_midi[5] = 38;
-		period_midi[6] = 44;
-		period_midi[7] = 42;
-		period_midi[8] = 44;
-		period_midi[9] = 46;
-		period_midi[10] = 41;
-		period_midi[11] = 43;
-		period_midi[12] = 45;
-		period_midi[13] = 47;
-		period_midi[14] = 48;
-		period_midi[15] = 50;
 	}
 
 	unsigned char last_midi_note_volume;
