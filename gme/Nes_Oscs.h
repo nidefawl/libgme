@@ -183,7 +183,7 @@ struct Nes_Osc
 				last_wheel_emit[new_midi_channel] = 0x2000;
 				midi_write_time(time);
 				midi_write_3(
-					0xE0 | last_midi_channel,
+					0xE0 | new_midi_channel,
 					last_wheel_emit[new_midi_channel] & 0x7F,
 					(last_wheel_emit[new_midi_channel] >> 7) & 0x7F
 				);
