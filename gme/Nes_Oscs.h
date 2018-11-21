@@ -41,7 +41,7 @@ struct Nes_Osc
 			double n = (log(f / 109.981803632778603) / log(2)) * 12;
 			int m = round(n) + midi_note_a();
 			period_midi[p] = m;
-			period_cents[p] = (short)((n - round(n)) * 8191);
+			period_cents[p] = (short)((n - round(n)) * 0xFFF) + 0x2000;
 		}
 	}
 
@@ -56,6 +56,9 @@ struct Nes_Osc
 	unsigned char last_midi_note;
 	unsigned char last_midi_channel;
 	unsigned char last_midi_channel_volume[16];
+	int note_on_period;
+	short last_wheel;
+	short last_wheel_emit;
 
 	static const int frames_per_second = 30;
 	static const int ticks_per_frame = 80;
@@ -160,6 +163,8 @@ struct Nes_Osc
 		);
 	}
 
+	const int wheel_threshold = 256;
+
 	virtual void note_on(nes_time_t time) {
 		unsigned char m = midi_note();
 		unsigned char new_midi_channel = midi_channel();
@@ -170,15 +175,44 @@ struct Nes_Osc
 				midi_write_channel_volume(time, new_midi_channel);
 				last_midi_channel_volume[new_midi_channel] = midi_channel_volume();
 			}
+			note_on_period = period();
+			if (abs(period_cents[note_on_period]-0x2000) < wheel_threshold && last_wheel_emit != 0x2000) {
+				// Reset pitch wheel to 0:
+				last_wheel_emit = 0x2000;
+				midi_write_time(time);
+				midi_write_3(
+					0xE0 | last_midi_channel,
+					last_wheel_emit & 0x7F,
+					(last_wheel_emit >> 7) & 0x7F
+				);
+			}
 			midi_write_note_on(time);
 			last_midi_channel = new_midi_channel;
-		} else if (midi_channel_volume() != last_midi_channel_volume[last_midi_channel]) {
-			// Update last channel played on's volume since we don't really support switching
-			// duty cycle without restarting the note (i.e. playing it across multiple channels).
-			midi_write_channel_volume(time, last_midi_channel);
-			last_midi_channel_volume[last_midi_channel] = midi_channel_volume();
+		} else {
+			if (midi_channel_volume() != last_midi_channel_volume[last_midi_channel]) {
+				// Update last channel played on's volume since we don't really support switching
+				// duty cycle without restarting the note (i.e. playing it across multiple channels).
+				midi_write_channel_volume(time, last_midi_channel);
+				last_midi_channel_volume[last_midi_channel] = midi_channel_volume();
+			}
 		}
 
+		// Period is changing too finely for MIDI note to change:
+		int wheel = period_cents[period()];
+		if (abs(wheel-0x2000) >= wheel_threshold || abs(period_cents[note_on_period]-wheel) >= wheel_threshold) {
+			if (last_wheel != wheel) {
+				// Emit pitch wheel change:
+				midi_write_time(time);
+				midi_write_3(
+					0xE0 | last_midi_channel,
+					wheel & 0x7F,
+					(wheel >> 7) & 0x7F
+				);
+				last_wheel_emit = wheel;
+			}
+		}
+
+		last_wheel = wheel;
 		last_midi_note = m;
 	}
 	virtual void note_off(nes_time_t time) {
