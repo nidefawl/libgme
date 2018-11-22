@@ -103,9 +103,9 @@ int main(int argc, char **argv)
 	handle_error( emu->start_track( track ) );
 
 	// replace '.nsf' extension with '.wav':
-	char *wav_filename = (char *)malloc(strlen(filename)+1);
+	char *wav_filename = (char *)malloc(strlen(filename)+4+1);
 	strcpy(wav_filename, filename);
-	strcpy(strrchr(wav_filename, '.')+1, "wav");
+	sprintf(strrchr(wav_filename, '.'), " %d.wav", track);
 
 	// Begin writing to wave file
 	Wave_Writer wave( sample_rate, wav_filename );
@@ -128,9 +128,9 @@ int main(int argc, char **argv)
 	int osc_count = 5;
 
 	// replace '.nsf' extension with '.mid':
-	char *mid_filename = (char *)malloc(strlen(filename)+1);
+	char *mid_filename = (char *)malloc(strlen(filename)+4+1);
 	strcpy(mid_filename, filename);
-	strcpy(strrchr(mid_filename, '.')+1, "mid");
+	sprintf(strrchr(mid_filename, '.'), " %d.mid", track);
 
 	// Write MIDI file, format 1:
 	FILE *m = fopen(mid_filename, "wb");
