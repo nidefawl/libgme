@@ -558,3 +558,82 @@ blargg_err_t Nsf_Emu::run_clocks( blip_time_t& duration, int )
 	
 	return 0;
 }
+
+// MIDI conversion support:
+
+bool Nsf_Emu::midi_supported() {
+	return true;
+}
+
+bool Nsf_Emu::midi_load_support_file(const char* support_filename) { 
+	// Load supporting MIDI conversion data for noise and DMC channels:
+	FILE *sup = fopen(support_filename, "r");
+	if (sup == NULL) {
+		return false;
+	}
+
+	Nes_Noise *noise = (Nes_Noise *)apu.get_osc(3);
+	Nes_Dmc   *dmc   = (Nes_Dmc   *)apu.get_osc(4);
+
+	char kind[16];
+	while (!feof(sup)) {
+		strcpy(kind, "");
+		int ret = fscanf(sup, "%15s", kind);
+		if (ret < 0) break;
+
+		// printf("%s ", kind);
+		if (strcmp(kind, "dmc") == 0) {
+			dmc->remappings.resize(dmc->remappings.size() + 1);
+			Dmc_Remapping *r = dmc->remappings.end() - 1;
+			fscanf(sup, "%02X %d %d %d", &r->src_address, &r->src_midi_note, &r->dest_midi_chan, &r->dest_midi_note);
+			// MIDI Channel numbers from base-1 to base-0:
+			r->dest_midi_chan--;
+			// printf("%02X %d %d %d\n", r->src_address, r->src_midi_note, r->dest_midi_chan, r->dest_midi_note);
+		} else if (strcmp(kind, "noise") == 0) {
+			noise->remappings.resize(noise->remappings.size() + 1);
+			Noise_Remapping *r = noise->remappings.end() - 1;
+			fscanf(sup, "%02X %d", &r->src_period, &r->dest_midi_note);
+			// printf("%02X %d\n", r->src_period, r->dest_midi_note);
+		} else {
+			// printf("\n");
+		}
+	}
+	fclose(sup);
+
+	return true;
+}
+
+void Nsf_Emu::midi_write_support_file(const char* support_filename) {
+	// Test if file exists:
+	FILE *sup = fopen(support_filename, "r");
+	if (sup != NULL) {
+		// Don't overwrite it:
+		fclose(sup);
+		return;
+	}
+
+	// Write supporting n2m file if it didn't exist before:
+	Nes_Noise *noise = (Nes_Noise *)apu.get_osc(3);
+	Nes_Dmc   *dmc   = (Nes_Dmc   *)apu.get_osc(4);
+
+	sup = fopen(support_filename, "w");
+
+	// Emit default noise mapping:
+	for (int i = 0; i < 32; i++) {
+		fprintf(sup, "noise %02X %d\n", i, noise->period_midi[i]);
+	}
+
+	fclose(sup);
+
+	return;
+}
+
+int Nsf_Emu::midi_track_count() {
+	return apu.osc_count;
+};
+
+blargg_vector<byte> const& Nsf_Emu::midi_track_mtrk(int track) {
+	Nes_Osc *osc = apu.get_osc(track);
+	osc->mtrk.resize(osc->mtrk_p);
+	return osc->mtrk;
+}

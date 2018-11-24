@@ -65,45 +65,10 @@ int main(int argc, char **argv)
 	// Load music file into emulator
 	handle_error( emu->load_file( filename ) );
 	
-	FILE *sup = NULL;
-	Nsf_Emu *nsf_emu = dynamic_cast<Nsf_Emu*>(emu);
-	Nes_Apu *apu = 0;
-	if (nsf_emu != 0) {
-		apu = nsf_emu->apu_();
-
-		// Load supporting MIDI conversion data for noise and DMC channels:
-		sup = fopen(support_filename, "r");
-		if (sup != NULL) {
-			Nes_Noise *noise = (Nes_Noise *)apu->get_osc(3);
-			Nes_Dmc   *dmc   = (Nes_Dmc   *)apu->get_osc(4);
-
-			char kind[16];
-			while (!feof(sup)) {
-				strcpy(kind, "");
-				int ret = fscanf(sup, "%15s", kind);
-				if (ret < 0) break;
-
-				printf("%s ", kind);
-				if (strcmp(kind, "dmc") == 0) {
-					dmc->remappings.resize(dmc->remappings.size() + 1);
-					Dmc_Remapping *r = dmc->remappings.end() - 1;
-					fscanf(sup, "%02X %d %d %d", &r->src_address, &r->src_midi_note, &r->dest_midi_chan, &r->dest_midi_note);
-					// MIDI Channel numbers from base-1 to base-0:
-					r->dest_midi_chan--;
-					printf("%02X %d %d %d\n", r->src_address, r->src_midi_note, r->dest_midi_chan, r->dest_midi_note);
-				} else if (strcmp(kind, "noise") == 0) {
-					noise->remappings.resize(noise->remappings.size() + 1);
-					Noise_Remapping *r = noise->remappings.end() - 1;
-					fscanf(sup, "%02X %d", &r->src_period, &r->dest_midi_note);
-					printf("%02X %d\n", r->src_period, r->dest_midi_note);
-				} else {
-					printf("\n");
-				}
-			}
-			fclose(sup);
-		}
+	bool midi_supported = emu->midi_supported();
+	if (midi_supported) {
+		emu->midi_load_support_file(support_filename);
 	}
-
 
 	// Start track
 	handle_error( emu->start_track( track ) );
@@ -131,9 +96,7 @@ int main(int argc, char **argv)
 		wave.write( buf, size );
 	}
 
-	if (nsf_emu != 0) {
-		int osc_count = 5;
-
+	if (midi_supported) {
 		// replace '.nsf' extension with '.mid':
 		char *mid_filename = (char *)malloc(strlen(filename)+4+1);
 		strcpy(mid_filename, filename);
@@ -147,34 +110,22 @@ int main(int argc, char **argv)
 		// format 1:
 		fwrite_be_16(1, m);
 		// track count:
-		fwrite_be_16(osc_count, m);
+		fwrite_be_16(emu->midi_track_count(), m);
 		// division:
 		fwrite_be_16(0x8000 | (((0x80 - Nes_Osc::frames_per_second) & 0x7F) << 8) | (Nes_Osc::ticks_per_frame & 0xFF), m);
 
-		for (int i = 0; i < osc_count; i++) {
-			Nes_Osc *osc = apu->get_osc(i);
+		for (int i = 0; i < emu->midi_track_count(); i++) {
+			const blargg_vector<unsigned char>& mtrk = emu->midi_track_mtrk(i);
 			fwrite("MTrk", 1, 4, m);
 			// MTrk length:
-			fwrite_be_32(osc->mtrk_p, m);
-			fwrite(osc->mtrk.begin(), 1, osc->mtrk_p, m);
+			fwrite_be_32(mtrk.size(), m);
+			fwrite(mtrk.begin(), 1, mtrk.size(), m);
 		}
 
 		fclose(m);
 
 		// Write supporting n2m file if it didn't exist before:
-		if (sup == NULL) {
-			Nes_Noise *noise = (Nes_Noise *)apu->get_osc(3);
-			Nes_Dmc   *dmc   = (Nes_Dmc   *)apu->get_osc(4);
-
-			sup = fopen(support_filename, "w");
-
-			// Emit default noise mapping:
-			for (int i = 0; i < 32; i++) {
-				fprintf(sup, "noise %02X %d\n", i, noise->period_midi[i]);
-			}
-
-			fclose(sup);
-		}
+		emu->midi_write_support_file(support_filename);
 	}
 
 	// Cleanup
