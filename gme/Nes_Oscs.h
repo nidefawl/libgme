@@ -39,7 +39,7 @@ struct Nes_Osc
 		for (int p = 0; p < 0x800; ++p) {
 			double f = clock_rate_ / (16 * (p + 1));
 			double n = (log(f / 54.99090178) / log(2)) * 12;
-			int m = round(n) + (midi_note_a() - 12);
+			int m = round(n) + midi_note_a();
 			period_midi[p] = m;
 			period_cents[p] = (short)((n - round(n)) * 0xFFF) + 0x2000;
 		}
@@ -285,7 +285,7 @@ struct Nes_Square : Nes_Envelope
 	Nes_Square( Synth const* s ) : synth( *s ) { }
 
 	// 45 = MIDI A3 (110 Hz)
-	unsigned char midi_note_a() const { return 45; }
+	unsigned char midi_note_a() const { return 33; }
 	unsigned char midi_channel() const { return (index * 4) + duty_select(); }
 
 	int duty_select() const { return (regs [0] >> 6) & 3; }
@@ -311,7 +311,7 @@ struct Nes_Triangle : Nes_Osc
 	unsigned char midi_note_volume() const { return 120; }
 	unsigned char midi_channel_volume() const { return 120; }
 	// 33 = MIDI A2 (110 Hz)
-	unsigned char midi_note_a() const { return 33; }
+	unsigned char midi_note_a() const { return 21; }
 	unsigned char midi_channel() const { return 8; }
 
 	void run( nes_time_t, nes_time_t );
@@ -351,7 +351,7 @@ struct Nes_Noise : Nes_Envelope
 	}
 
 	// 45 = MIDI A3 (110 Hz)
-	unsigned char midi_note_a() const { return 45; }
+	unsigned char midi_note_a() const { return 33; }
 
 	void set_clock_rate(double clock_rate) {
 		clock_rate_ = clock_rate;
@@ -443,7 +443,7 @@ struct Nes_Dmc : Nes_Osc
 	mutable blargg_vector<int> channel_address_map;
 
 	// 45 = MIDI A3 (110 Hz)
-	unsigned char midi_note_a() const { return 45; }
+	unsigned char midi_note_a() const { return 33; }
 
 	blargg_vector<Dmc_Remapping> remappings;
 	Dmc_Remapping *find_remapping() const {
