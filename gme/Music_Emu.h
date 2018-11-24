@@ -110,7 +110,7 @@ public:
 	virtual bool midi_load_support_file(const char* support_filename) { return false; }
 	virtual void midi_write_support_file(const char* support_filename) { return; }
 	virtual int midi_track_count() { return voice_count(); };
-	virtual blargg_vector<byte> const& midi_track_mtrk(int) { throw "invalid"; }
+	virtual blargg_vector<unsigned char> const& midi_track_mtrk(int) { throw "invalid"; }
 
 public:
 	Music_Emu();

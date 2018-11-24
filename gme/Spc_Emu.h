@@ -46,6 +46,13 @@ public:
 	
 	static gme_type_t static_type() { return gme_spc_type; }
 	
+// MIDI conversion functionality:
+	virtual bool midi_supported();
+	virtual bool midi_load_support_file(const char* support_filename);
+	virtual void midi_write_support_file(const char* support_filename);
+	virtual int midi_track_count();
+	virtual blargg_vector<unsigned char> const& midi_track_mtrk(int);
+
 public:
 	// deprecated
 	Music_Emu::load;

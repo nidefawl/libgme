@@ -144,7 +144,8 @@ public:
 	enum { extra_size = Spc_Dsp::extra_size };
 	
 	enum { signature_size = 35 };
-	
+
+	Spc_Dsp& dsp_() { return dsp; }
 private:
 	Spc_Dsp dsp;
 	

@@ -5,6 +5,7 @@
 #include "blargg_endian.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 /* Copyright (C) 2004-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
@@ -349,4 +350,67 @@ blargg_err_t Spc_Emu::play_( long count, sample_t* out )
 	}
 	check( remain == 0 );
 	return 0;
+}
+
+// MIDI conversion support:
+
+bool Spc_Emu::midi_supported() {
+	return true;
+}
+
+bool Spc_Emu::midi_load_support_file(const char* support_filename) {
+	// Load supporting MIDI conversion data for noise and DMC channels:
+	FILE *sup = fopen(support_filename, "r");
+	if (sup == NULL) {
+		return false;
+	}
+
+	char kind[16];
+	while (!feof(sup)) {
+		strcpy(kind, "");
+		int ret = fscanf(sup, "%15s", kind);
+		if (ret < 0) break;
+
+		// printf("%s ", kind);
+		if (strcmp(kind, "dmc") == 0) {
+		} else if (strcmp(kind, "noise") == 0) {
+		} else {
+			// printf("\n");
+		}
+	}
+	fclose(sup);
+
+	return true;
+}
+
+void Spc_Emu::midi_write_support_file(const char* support_filename) {
+	// Test if file exists:
+	FILE *sup = fopen(support_filename, "r");
+	if (sup != NULL) {
+		// Don't overwrite it:
+		fclose(sup);
+		return;
+	}
+
+	// Write supporting n2m file if it didn't exist before:
+	sup = fopen(support_filename, "w");
+
+	// Emit default noise mapping:
+	for (int i = 0; i < 32; i++) {
+		//fprintf(sup, "noise %02X %d\n", i, noise->period_midi[i]);
+	}
+
+	fclose(sup);
+
+	return;
+}
+
+int Spc_Emu::midi_track_count() {
+	return apu.dsp_().voice_count;
+};
+
+blargg_vector<unsigned char> const& Spc_Emu::midi_track_mtrk(int track) {
+	blargg_vector<unsigned char>& mtrk = apu.dsp_().mtrk[track];
+	mtrk.resize(apu.dsp_().mtrk_p[track]);
+	return mtrk;
 }

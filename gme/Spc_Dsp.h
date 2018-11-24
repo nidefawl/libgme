@@ -82,6 +82,9 @@ public:
 		v_envx   = 0x08, v_outx   = 0x09
 	};
 
+// MIDI conversion support:
+	blargg_vector<unsigned char> mtrk[voice_count];
+	int mtrk_p[voice_count];
 public:
 	enum { extra_size = 16 };
 	sample_t* extra()               { return m.extra; }
