@@ -28,6 +28,7 @@ struct Nes_Osc
 	short period_cents[0x800];
 
 	virtual unsigned char midi_note_a() const = 0;
+	virtual bool midi_pitch_wheel_enabled() const { return midi_channel() != 9; }
 
 	virtual void set_clock_rate(double clock_rate) {
 		clock_rate_ = clock_rate;
@@ -176,17 +177,19 @@ struct Nes_Osc
 				last_midi_channel_volume[new_midi_channel] = midi_channel_volume();
 			}
 			note_on_period = period();
-			if (abs(period_cents[note_on_period]-0x2000) < wheel_threshold &&
-				last_wheel_emit[new_midi_channel] != 0x2000)
-			{
-				// Reset pitch wheel to 0:
-				last_wheel_emit[new_midi_channel] = 0x2000;
-				midi_write_time(time);
-				midi_write_3(
-					0xE0 | new_midi_channel,
-					last_wheel_emit[new_midi_channel] & 0x7F,
-					(last_wheel_emit[new_midi_channel] >> 7) & 0x7F
-				);
+			if (midi_pitch_wheel_enabled()) {
+				if (abs(period_cents[note_on_period]-0x2000) < wheel_threshold &&
+					last_wheel_emit[new_midi_channel] != 0x2000)
+				{
+					// Reset pitch wheel to 0:
+					last_wheel_emit[new_midi_channel] = 0x2000;
+					midi_write_time(time);
+					midi_write_3(
+						0xE0 | new_midi_channel,
+						last_wheel_emit[new_midi_channel] & 0x7F,
+						(last_wheel_emit[new_midi_channel] >> 7) & 0x7F
+					);
+				}
 			}
 			midi_write_note_on(time);
 			last_midi_channel = new_midi_channel;
@@ -199,20 +202,22 @@ struct Nes_Osc
 			}
 		}
 
-		// Period is changing too finely for MIDI note to change:
-		int wheel = period_cents[period()];
-		if (abs(wheel-0x2000) >= wheel_threshold ||
-			abs(period_cents[note_on_period]-wheel) >= wheel_threshold)
-		{
-			if (last_wheel_emit[last_midi_channel] != wheel) {
-				// Emit pitch wheel change:
-				midi_write_time(time);
-				midi_write_3(
-					0xE0 | last_midi_channel,
-					wheel & 0x7F,
-					(wheel >> 7) & 0x7F
-				);
-				last_wheel_emit[last_midi_channel] = wheel;
+		if (midi_pitch_wheel_enabled()) {
+			// Period is changing too finely for MIDI note to change:
+			int wheel = period_cents[period()];
+			if (abs(wheel-0x2000) >= wheel_threshold ||
+				abs(period_cents[note_on_period]-wheel) >= wheel_threshold)
+			{
+				if (last_wheel_emit[last_midi_channel] != wheel) {
+					// Emit pitch wheel change:
+					midi_write_time(time);
+					midi_write_3(
+						0xE0 | last_midi_channel,
+						wheel & 0x7F,
+						(wheel >> 7) & 0x7F
+					);
+					last_wheel_emit[last_midi_channel] = wheel;
+				}
 			}
 		}
 
@@ -506,8 +511,8 @@ struct Nes_Dmc : Nes_Osc
 
 		return period_midi[period];
 	}
-	unsigned char midi_note_volume() const { return 96; }
-	unsigned char midi_channel_volume() const { return 96; }
+	unsigned char midi_note_volume() const { return 64; }
+	unsigned char midi_channel_volume() const { return 64; }
 
 	void start(nes_time_t);
 	void write_register( int, int );
