@@ -424,8 +424,8 @@ unsigned char *MidiTrack::ensure(size_t n) {
 	return mtrk.begin();
 }
 
-void MidiTrack::write_time(int abs_tick) {
-	int ticks = abs_tick - last_tick;
+void MidiTrack::write_time(midi_tick_t abs_tick) {
+	midi_tick_t ticks = abs_tick - last_tick;
 	last_tick = abs_tick;
 
 	unsigned char chr1 = (unsigned char)(ticks & 0x7F);
@@ -461,14 +461,14 @@ void MidiTrack::write_time(int abs_tick) {
 	}
 }
 
-void MidiTrack::write_2(int abs_tick, unsigned char cmd, unsigned char data1) {
+void MidiTrack::write_2(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1) {
 	write_time(abs_tick);
 	unsigned char *p = ensure(2);
 	p[length++] = cmd;
 	p[length++] = data1;
 }
 
-void MidiTrack::write_3(int abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2) {
+void MidiTrack::write_3(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2) {
 	write_time(abs_tick);
 	unsigned char *p = ensure(3);
 	p[length++] = cmd;

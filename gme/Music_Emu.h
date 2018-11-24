@@ -7,15 +7,17 @@
 #include "Gme_File.h"
 class Multi_Buffer;
 
+typedef unsigned long long midi_tick_t;
+
 struct MidiTrack {
 	blargg_vector<unsigned char> mtrk;
 	int length;
-	int last_tick;
+	midi_tick_t last_tick;
 
 	unsigned char *ensure(size_t n);
-	void write_time(int abs_tick);
-	void write_2(int abs_tick, unsigned char cmd, unsigned char data1);
-	void write_3(int abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2);
+	void write_time(midi_tick_t abs_tick);
+	void write_2(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1);
+	void write_3(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2);
 };
 
 struct Music_Emu : public Gme_File {
