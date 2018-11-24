@@ -5,8 +5,10 @@
 #define SPC_DSP_H
 
 #include "blargg_common.h"
+#include "blargg_endian.h"
 #include "Music_Emu.h"
 #include <stdio.h>
+#include <math.h>
 
 struct Spc_Dsp {
 public:
@@ -156,15 +158,43 @@ private:
 public:
 // MIDI conversion support:
 	MidiTrack midi[voice_count];
-	midi_tick_t abs_tick;
-
-	void note_on(voice_t *v, int pitch) {
-		int voice = v - m.voices;
-		printf("%9lld ON  %*s %5d\n", abs_tick, voice * 5, "", pitch);
+	int abs_sample;
+	int abs_tick() { return abs_sample * 3; }
+	double midi_note(voice_t *v) {
+		int pitch = GET_LE16( &m.regs[(v - m.voices) * 0x10 + v_pitchl] ) & 0x3FFF;
+		double hz = 440 * (double)pitch / (double)0x1000;
+		// 440Hz = concert A4 = MIDI note 69
+		double m = (log(hz / 440) / log(2)) * 12 + 69;
+		return m;
 	}
-	void note_off(voice_t *v, int pitch) {
+
+	void note_on(voice_t *v) {
 		int voice = v - m.voices;
-		printf("%9lld OFF %*s %5d\n", abs_tick, voice * 5, "", pitch);
+		midi_tick_t tick = abs_tick();
+
+		double m = midi_note(v);
+
+		printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);
+		midi[voice].write_3(
+			tick,
+			0x90 | voice,
+			(int)m,
+			0x40
+		);
+	}
+	void note_off(voice_t *v) {
+		int voice = v - m.voices;
+		midi_tick_t tick = abs_tick();
+
+		double m = midi_note(v);
+
+		printf("%9lld OFF %*s %3d\n", tick, voice * 3, "", (int)m);
+		midi[voice].write_3(
+			tick,
+			0x80 | voice,
+			(int)m,
+			0x40
+		);
 	}
 };
 

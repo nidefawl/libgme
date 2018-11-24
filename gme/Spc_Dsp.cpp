@@ -333,7 +333,7 @@ void Spc_Dsp::run( int clock_count )
 			{
 				if ( v->env_mode != env_release )
 				{
-					note_off(v, pitch);
+					note_off(v);
 				}
 				v->env_mode = env_release;
 				env         = 0;
@@ -346,7 +346,7 @@ void Spc_Dsp::run( int clock_count )
 				{
 					if ( v->env_mode != env_release )
 					{
-						note_off(v, pitch);
+						note_off(v);
 					}
 					v->env_mode = env_release;
 				}
@@ -356,7 +356,7 @@ void Spc_Dsp::run( int clock_count )
 				{
 					v->kon_delay = 5;
 					v->env_mode  = env_attack;
-					note_on(v, pitch);
+					note_on(v);
 					REG(endx) &= ~vbit;
 				}
 			}
@@ -633,7 +633,7 @@ skip_brr:
 		WRITE_SAMPLES( l, r, out );
 		m.out = out;
 
-		abs_tick++;
+		abs_sample++;
 	}
 	while ( --count );
 }
@@ -706,6 +706,7 @@ void Spc_Dsp::load( uint8_t const regs [register_count] )
 		voice_t& v = m.voices [i];
 		v.brr_offset = 1;
 		v.buf_pos    = v.buf;
+		midi[i].mtrk.resize(30000);
 	}
 	m.new_kon = REG(kon);
 	
