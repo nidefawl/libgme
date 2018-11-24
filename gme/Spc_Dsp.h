@@ -248,14 +248,14 @@ public:
 
 			// Write a patch change:
 			int new_patch = spl.midi_patch();
-			if (midi_channel[spl_midi_channel].patch != new_patch) {
-				midi[spl_midi_channel].write_2(
+			// if (midi_channel[spl_midi_channel].patch != new_patch) {
+				midi[voice].write_2(
 					tick,
 					0xC0 | spl_midi_channel,
 					new_patch
 				);
 				midi_channel[spl_midi_channel].patch = new_patch;
-			}
+			// }
 		}
 
 		// printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);

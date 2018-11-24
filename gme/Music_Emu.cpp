@@ -4,6 +4,7 @@
 
 #include "Multi_Buffer.h"
 #include <string.h>
+#include <stdio.h>
 
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
@@ -418,8 +419,13 @@ unsigned char *MidiTrack::ensure(size_t n) {
 		new_size *= 2;
 	}
 	if (new_size > mtrk.size()) {
-		mtrk.resize(new_size);
+		printf("resize %ld\n", new_size);
+		blargg_err_t err = mtrk.resize(new_size);
+		if (err != 0) {
+			fprintf(stderr, "%s\n", err);
+		}
 	}
+	assert(new_size == mtrk.size());
 
 	return mtrk.begin();
 }
