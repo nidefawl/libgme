@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	
 	// Load music file into emulator
 	handle_error( emu->load_file( filename ) );
-
+	
 	// Start track
 	handle_error( emu->start_track( track ) );
 
@@ -82,8 +82,8 @@ int main(int argc, char **argv)
 	Wave_Writer wave( sample_rate, wav_filename );
 	wave.enable_stereo();
 	
-	// Record 10 seconds of track
-	while ( emu->tell() < (60 + 60 + 60) * 1000L )
+	// Record 10 minutes of track or stop when track ended.
+	while ( !emu->track_ended() && (emu->tell() < (10 * 60) * 1000L) )
 	{
 		// Sample buffer
 		const long size = 1024; // can be any multiple of 2
