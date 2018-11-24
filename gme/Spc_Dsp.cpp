@@ -331,6 +331,10 @@ void Spc_Dsp::run( int clock_count )
 			// Soft reset or end of sample
 			if ( REG(flg) & 0x80 || (brr_header & 3) == 1 )
 			{
+				if ( v->env_mode != env_release )
+				{
+					note_off(v, pitch);
+				}
 				v->env_mode = env_release;
 				env         = 0;
 			}
@@ -339,13 +343,20 @@ void Spc_Dsp::run( int clock_count )
 			{
 				// KOFF
 				if ( m.t_koff & vbit )
+				{
+					if ( v->env_mode != env_release )
+					{
+						note_off(v, pitch);
+					}
 					v->env_mode = env_release;
+				}
 				
 				// KON
 				if ( m.kon & vbit )
 				{
 					v->kon_delay = 5;
 					v->env_mode  = env_attack;
+					note_on(v, pitch);
 					REG(endx) &= ~vbit;
 				}
 			}
@@ -621,6 +632,8 @@ skip_brr:
 		sample_t* out = m.out;
 		WRITE_SAMPLES( l, r, out );
 		m.out = out;
+
+		abs_tick++;
 	}
 	while ( --count );
 }

@@ -6,6 +6,7 @@
 
 #include "blargg_common.h"
 #include "Music_Emu.h"
+#include <stdio.h>
 
 struct Spc_Dsp {
 public:
@@ -83,8 +84,6 @@ public:
 		v_envx   = 0x08, v_outx   = 0x09
 	};
 
-// MIDI conversion support:
-	MidiTrack midi[voice_count];
 public:
 	enum { extra_size = 16 };
 	sample_t* extra()               { return m.extra; }
@@ -153,6 +152,20 @@ private:
 	void soft_reset_common();
 	void write_outline( int addr, int data );
 	void update_voice_vol( int addr );
+
+public:
+// MIDI conversion support:
+	MidiTrack midi[voice_count];
+	midi_tick_t abs_tick;
+
+	void note_on(voice_t *v, int pitch) {
+		int voice = v - m.voices;
+		printf("%9lld ON  %*s %5d\n", abs_tick, voice * 5, "", pitch);
+	}
+	void note_off(voice_t *v, int pitch) {
+		int voice = v - m.voices;
+		printf("%9lld OFF %*s %5d\n", abs_tick, voice * 5, "", pitch);
+	}
 };
 
 #include <assert.h>
