@@ -5,6 +5,7 @@
 #define SPC_DSP_H
 
 #include "blargg_common.h"
+#include "Music_Emu.h"
 
 struct Spc_Dsp {
 public:
@@ -83,8 +84,7 @@ public:
 	};
 
 // MIDI conversion support:
-	blargg_vector<unsigned char> mtrk[voice_count];
-	int mtrk_p[voice_count];
+	MidiTrack midi[voice_count];
 public:
 	enum { extra_size = 16 };
 	sample_t* extra()               { return m.extra; }

@@ -51,7 +51,7 @@ public:
 	virtual bool midi_load_support_file(const char* support_filename);
 	virtual void midi_write_support_file(const char* support_filename);
 	virtual int midi_track_count();
-	virtual blargg_vector<unsigned char> const& midi_track_mtrk(int);
+	virtual const MidiTrack& midi_track_mtrk(int);
 
 public:
 	// deprecated

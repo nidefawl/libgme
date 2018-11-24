@@ -409,3 +409,69 @@ void         Gme_Info_::mute_voices_( int )                 { check( false ); }
 void         Gme_Info_::set_tempo_( double )                { }
 blargg_err_t Gme_Info_::start_track_( int )                 { return "Use full emulator for playback"; }
 blargg_err_t Gme_Info_::play_( long, sample_t* )            { return "Use full emulator for playback"; }
+
+// MIDI
+
+unsigned char *MidiTrack::ensure(size_t n) {
+	size_t new_size = mtrk.size();
+	while ((length + n) > new_size) {
+		new_size *= 2;
+	}
+	if (new_size > mtrk.size()) {
+		mtrk.resize(new_size);
+	}
+
+	return mtrk.begin();
+}
+
+void MidiTrack::write_time(int abs_tick) {
+	int ticks = abs_tick - last_tick;
+	last_tick = abs_tick;
+
+	unsigned char chr1 = (unsigned char)(ticks & 0x7F);
+	ticks >>= 7;
+	if (ticks > 0) {
+	    unsigned char chr2 = (unsigned char)((ticks & 0x7F) | 0x80);
+	    ticks >>= 7;
+	    if (ticks > 0) {
+	        unsigned char chr3 = (unsigned char)((ticks & 0x7F) | 0x80);
+	        ticks >>= 7;
+	        if (ticks > 0) {
+	            unsigned char chr4 = (unsigned char)((ticks & 0x7F) | 0x80);
+
+				unsigned char *p = ensure(4);
+				p[length++] = chr4;
+				p[length++] = chr3;
+				p[length++] = chr2;
+				p[length++] = chr1;
+	        } else {
+				unsigned char *p = ensure(3);
+				p[length++] = chr3;
+				p[length++] = chr2;
+				p[length++] = chr1;
+	        }
+	    } else {
+			unsigned char *p = ensure(2);
+			p[length++] = chr2;
+			p[length++] = chr1;
+	    }
+	} else {
+		unsigned char *p = ensure(1);
+		p[length++] = chr1;
+	}
+}
+
+void MidiTrack::write_2(int abs_tick, unsigned char cmd, unsigned char data1) {
+	write_time(abs_tick);
+	unsigned char *p = ensure(2);
+	p[length++] = cmd;
+	p[length++] = data1;
+}
+
+void MidiTrack::write_3(int abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2) {
+	write_time(abs_tick);
+	unsigned char *p = ensure(3);
+	p[length++] = cmd;
+	p[length++] = data1;
+	p[length++] = data2;
+}

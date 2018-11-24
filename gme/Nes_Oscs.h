@@ -52,8 +52,7 @@ struct Nes_Osc
 	virtual unsigned char midi_note_volume() const = 0;
 	virtual unsigned char midi_channel_volume() const = 0;
 
-	blargg_vector<unsigned char> mtrk;
-	size_t mtrk_p;
+	MidiTrack midi;
 	int last_tick;
 	unsigned char last_midi_note;
 	unsigned char last_midi_channel;
@@ -66,81 +65,19 @@ struct Nes_Osc
 		return (double)(abs_time + time) / clock_rate_;
 	}
 
-	void midi_ensure(size_t n) {
-		size_t new_size = mtrk.size();
-		while ((mtrk_p + n) > new_size) {
-			new_size *= 2;
-		}
-		if (new_size > mtrk.size()) {
-			mtrk.resize(new_size);
-		}
-	}
-
-	void midi_write_time(nes_time_t time) {
+	int abs_tick(nes_time_t time) {
 		double s = seconds(time);
 		// NOTE: I dont know why this 47.8946 multiplier is necessary. REAPER doesnt load the file right without it.
 		// I suspect this is a bug in REAPER and this multiplier is just junk that happens to convert the fps:ticks
 		// format into a more traditional tempo divisor (where REAPER is assuming bit 15 is off of the divisor
 		// specifier).
-		int abs_tick = (int)(s * 47.89463181001796 * Music_Emu::frames_per_second * Music_Emu::ticks_per_frame);
-		int ticks = abs_tick - last_tick;
-		last_tick = abs_tick;
-
-		unsigned char chr1 = (unsigned char)(ticks & 0x7F);
-		ticks >>= 7;
-		if (ticks > 0) {
-		    unsigned char chr2 = (unsigned char)((ticks & 0x7F) | 0x80);
-		    ticks >>= 7;
-		    if (ticks > 0) {
-		        unsigned char chr3 = (unsigned char)((ticks & 0x7F) | 0x80);
-		        ticks >>= 7;
-		        if (ticks > 0) {
-		            unsigned char chr4 = (unsigned char)((ticks & 0x7F) | 0x80);
-
-					midi_ensure(4);
-					unsigned char *p = mtrk.begin();
-					p[mtrk_p++] = chr4;
-					p[mtrk_p++] = chr3;
-					p[mtrk_p++] = chr2;
-					p[mtrk_p++] = chr1;
-		        } else {
-					midi_ensure(3);
-					unsigned char *p = mtrk.begin();
-					p[mtrk_p++] = chr3;
-					p[mtrk_p++] = chr2;
-					p[mtrk_p++] = chr1;
-		        }
-		    } else {
-				midi_ensure(2);
-				unsigned char *p = mtrk.begin();
-				p[mtrk_p++] = chr2;
-				p[mtrk_p++] = chr1;
-		    }
-		} else {
-			midi_ensure(1);
-			unsigned char *p = mtrk.begin();
-			p[mtrk_p++] = chr1;
-		}
-	}
-
-	void midi_write_2(unsigned char cmd, unsigned char data1) {
-		midi_ensure(2);
-		unsigned char *p = mtrk.begin();
-		p[mtrk_p++] = cmd;
-		p[mtrk_p++] = data1;
-	}
-
-	void midi_write_3(unsigned char cmd, unsigned char data1, unsigned char data2) {
-		midi_ensure(3);
-		unsigned char *p = mtrk.begin();
-		p[mtrk_p++] = cmd;
-		p[mtrk_p++] = data1;
-		p[mtrk_p++] = data2;
+		int tick = (int)(s * 47.89463181001796 * Music_Emu::frames_per_second * Music_Emu::ticks_per_frame);
+		return tick;
 	}
 
 	void midi_write_note_on(nes_time_t time) {
-		midi_write_time(time);
-		midi_write_3(
+		midi.write_3(
+			abs_tick(time),
 			(0x90 | (midi_channel() & 0x0F)),
 			midi_note(),
 			midi_note_volume()
@@ -148,8 +85,8 @@ struct Nes_Osc
 	}
 
 	void midi_write_note_off(nes_time_t time) {
-		midi_write_time(time);
-		midi_write_3(
+		midi.write_3(
+			abs_tick(time),
 			(0x80 | (last_midi_channel & 0x0F)),
 			last_midi_note,
 			0
@@ -157,12 +94,22 @@ struct Nes_Osc
 	}
 
 	void midi_write_channel_volume(nes_time_t time, unsigned char channel) {
-		midi_write_time(time);
-		midi_write_3(
+		midi.write_3(
+			abs_tick(time),
 			0xB0 | (channel & 0x0F),
 			0x07,	// channel volume
 			midi_channel_volume()
 		);
+	}
+
+	void midi_write_pitch_wheel(nes_time_t time, unsigned char channel, short wheel) {
+		midi.write_3(
+			abs_tick(time),
+			0xE0 | channel,
+			wheel & 0x7F,
+			(wheel >> 7) & 0x7F
+		);
+		last_wheel_emit[channel] = wheel;
 	}
 
 	const int wheel_threshold = 384;
@@ -183,13 +130,7 @@ struct Nes_Osc
 					last_wheel_emit[new_midi_channel] != 0x2000)
 				{
 					// Reset pitch wheel to 0:
-					last_wheel_emit[new_midi_channel] = 0x2000;
-					midi_write_time(time);
-					midi_write_3(
-						0xE0 | new_midi_channel,
-						last_wheel_emit[new_midi_channel] & 0x7F,
-						(last_wheel_emit[new_midi_channel] >> 7) & 0x7F
-					);
+					midi_write_pitch_wheel(time, new_midi_channel, 0x2000);
 				}
 			}
 			midi_write_note_on(time);
@@ -211,13 +152,7 @@ struct Nes_Osc
 			{
 				if (last_wheel_emit[last_midi_channel] != wheel) {
 					// Emit pitch wheel change:
-					midi_write_time(time);
-					midi_write_3(
-						0xE0 | last_midi_channel,
-						wheel & 0x7F,
-						(wheel >> 7) & 0x7F
-					);
-					last_wheel_emit[last_midi_channel] = wheel;
+					midi_write_pitch_wheel(time, last_midi_channel, wheel);
 				}
 			}
 		}
@@ -249,8 +184,8 @@ struct Nes_Osc
 			last_wheel_emit[i] = 0x2000;
 		}
 
-		mtrk.resize(30000);
-		mtrk_p = 0;
+		midi.mtrk.resize(30000);
+		midi.length = 0;
 	}
 	int update_amp( int amp ) {
 		int delta = amp - last_amp;

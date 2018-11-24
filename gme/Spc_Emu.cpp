@@ -409,8 +409,6 @@ int Spc_Emu::midi_track_count() {
 	return apu.dsp_().voice_count;
 };
 
-blargg_vector<unsigned char> const& Spc_Emu::midi_track_mtrk(int track) {
-	blargg_vector<unsigned char>& mtrk = apu.dsp_().mtrk[track];
-	mtrk.resize(apu.dsp_().mtrk_p[track]);
-	return mtrk;
+const MidiTrack& Spc_Emu::midi_track_mtrk(int track) {
+	return apu.dsp_().midi[track];
 }

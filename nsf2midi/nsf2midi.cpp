@@ -120,11 +120,11 @@ int main(int argc, char **argv)
 		);
 
 		for (int i = 0; i < emu->midi_track_count(); i++) {
-			const blargg_vector<unsigned char>& mtrk = emu->midi_track_mtrk(i);
+			const MidiTrack& mtrk = emu->midi_track_mtrk(i);
 			fwrite("MTrk", 1, 4, m);
 			// MTrk length:
-			fwrite_be_32(mtrk.size(), m);
-			fwrite(mtrk.begin(), 1, mtrk.size(), m);
+			fwrite_be_32(mtrk.length, m);
+			fwrite(mtrk.mtrk.begin(), 1, mtrk.length, m);
 		}
 
 		fclose(m);

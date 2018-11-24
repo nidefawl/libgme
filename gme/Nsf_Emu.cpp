@@ -632,8 +632,7 @@ int Nsf_Emu::midi_track_count() {
 	return apu.osc_count;
 };
 
-blargg_vector<unsigned char> const& Nsf_Emu::midi_track_mtrk(int track) {
+const MidiTrack& Nsf_Emu::midi_track_mtrk(int track) {
 	Nes_Osc *osc = apu.get_osc(track);
-	osc->mtrk.resize(osc->mtrk_p);
-	return osc->mtrk;
+	return osc->midi;
 }
