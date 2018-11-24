@@ -112,7 +112,12 @@ int main(int argc, char **argv)
 		// track count:
 		fwrite_be_16(emu->midi_track_count(), m);
 		// division:
-		fwrite_be_16(0x8000 | (((0x80 - Nes_Osc::frames_per_second) & 0x7F) << 8) | (Nes_Osc::ticks_per_frame & 0xFF), m);
+		fwrite_be_16(
+			0x8000 |
+				(((0x80 - Music_Emu::frames_per_second) & 0x7F) << 8) |
+				(Music_Emu::ticks_per_frame & 0xFF),
+			m
+		);
 
 		for (int i = 0; i < emu->midi_track_count(); i++) {
 			const blargg_vector<unsigned char>& mtrk = emu->midi_track_mtrk(i);

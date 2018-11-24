@@ -6,6 +6,7 @@
 
 #include "blargg_common.h"
 #include "Blip_Buffer.h"
+#include "Music_Emu.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -61,9 +62,6 @@ struct Nes_Osc
 	short last_wheel;
 	short last_wheel_emit[16];
 
-	static const int frames_per_second = 30;
-	static const int ticks_per_frame = 80;
-
 	double seconds(nes_time_t time) {
 		return (double)(abs_time + time) / clock_rate_;
 	}
@@ -81,7 +79,10 @@ struct Nes_Osc
 	void midi_write_time(nes_time_t time) {
 		double s = seconds(time);
 		// NOTE: I dont know why this 47.8946 multiplier is necessary. REAPER doesnt load the file right without it.
-		int abs_tick = (int)(s * 47.89463181001796 * frames_per_second * ticks_per_frame);
+		// I suspect this is a bug in REAPER and this multiplier is just junk that happens to convert the fps:ticks
+		// format into a more traditional tempo divisor (where REAPER is assuming bit 15 is off of the divisor
+		// specifier).
+		int abs_tick = (int)(s * 47.89463181001796 * Music_Emu::frames_per_second * Music_Emu::ticks_per_frame);
 		int ticks = abs_tick - last_tick;
 		last_tick = abs_tick;
 

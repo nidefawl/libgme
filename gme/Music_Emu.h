@@ -103,6 +103,10 @@ public:
 	
 // MIDI conversion functionality:
 	virtual bool midi_supported() { return false; }
+	enum {
+		frames_per_second = 30,
+		ticks_per_frame   = 80
+	};
 	virtual bool midi_load_support_file(const char* support_filename) { return false; }
 	virtual void midi_write_support_file(const char* support_filename) { return; }
 	virtual int midi_track_count() { return voice_count(); };
