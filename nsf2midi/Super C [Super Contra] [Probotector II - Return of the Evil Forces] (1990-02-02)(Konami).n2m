@@ -1,0 +1,48 @@
+noise 00 42
+noise 01 42
+noise 02 42
+noise 03 42
+noise 04 42
+noise 05 42
+noise 06 42
+noise 07 42
+noise 08 44
+noise 09 42
+noise 0A 46
+noise 0B 42
+noise 0C 42
+noise 0D 42
+noise 0E 42
+noise 0F 51
+noise 10 81
+noise 11 80
+noise 12 79
+noise 13 78
+noise 14 77
+noise 15 76
+noise 16 75
+noise 17 74
+noise 18 73
+noise 19 72
+noise 1A 71
+noise 1B 70
+noise 1C 69
+noise 1D 68
+noise 1E 67
+noise 1F 66
+dmc 05 96 10 38
+dmc 00 96 10 45
+dmc 00 91 10 43
+dmc 00 88 10 41
+dmc 0D 77 10 36
+
+dmc 0E 88 11 62
+dmc 19 88 11 63
+dmc 24 88 11 64
+dmc 2F 88 11 65
+dmc 3A 88 11 67
+dmc 45 88 11 68
+dmc 50 88 11 69
+dmc 5B 88 11 70
+dmc 66 88 11 71
+dmc 71 88 11 72
