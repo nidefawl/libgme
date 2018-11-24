@@ -159,7 +159,20 @@ public:
 // MIDI conversion support:
 	MidiTrack midi[voice_count];
 	int abs_sample;
-	int abs_tick() { return abs_sample * 3; }
+	midi_tick_t abs_tick() { return (midi_tick_t)(abs_sample * 3.590664272890485); }
+
+	struct voice_midi_state {
+		int sample;
+
+		int midi_channel;
+	};
+	voice_midi_state voice_midi[voice_count];
+
+	struct midi_channel_state {
+		int note;
+		int patch;
+	};
+	midi_channel_state midi_channel[16];
 
 	struct sample_midi_config {
 		bool used;	// whether or not this sample number is actually used in the song
@@ -210,32 +223,60 @@ public:
 	}
 
 	void note_on(voice_t *v) {
+		char sample_s[3];
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
+		int sample = voice_sample(voice);
+		sample_midi_config &spl = sample_midi[sample];
+
 		// Mark sample as used:
-		sample_midi[voice_sample(voice)].used = true;
+		spl.used = true;
+
+		// Get MIDI note:
 		double m = midi_note(voice);
 
-		printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);
+		if (voice_midi[voice].sample != sample)
+		{
+			int spl_midi_channel = spl.midi_channel(voice);
+
+			// Write a text event describing sample number:
+			sprintf(sample_s, "%02X", sample);
+			midi[voice].write_meta(tick, 0x01, 2, sample_s);
+			voice_midi[voice].sample = sample;
+			voice_midi[voice].midi_channel = spl_midi_channel;
+
+			// Write a patch change:
+			int new_patch = spl.midi_patch();
+			if (midi_channel[spl_midi_channel].patch != new_patch) {
+				midi[spl_midi_channel].write_2(
+					tick,
+					0xC0 | spl_midi_channel,
+					new_patch
+				);
+				midi_channel[spl_midi_channel].patch = new_patch;
+			}
+		}
+
+		// printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);
 		midi[voice].write_3(
 			tick,
-			0x90 | voice,
+			0x90 | voice_midi[voice].midi_channel,
 			(int)m,
 			0x40
 		);
+		midi_channel[voice_midi[voice].midi_channel].note = (int)m;
 	}
+
 	void note_off(voice_t *v) {
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
-		double m = midi_note(voice);
-
-		printf("%9lld OFF %*s %3d\n", tick, voice * 3, "", (int)m);
+		// printf("%9lld OFF %*s %3d\n", tick, voice * 3, "", (int)m);
 		midi[voice].write_3(
 			tick,
-			0x80 | voice,
-			(int)m,
+			0x80 | voice_midi[voice].midi_channel,
+			midi_channel[voice_midi[voice].midi_channel].note,
 			0x00
 		);
 	}

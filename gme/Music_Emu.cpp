@@ -427,17 +427,20 @@ unsigned char *MidiTrack::ensure(size_t n) {
 void MidiTrack::write_time(midi_tick_t abs_tick) {
 	midi_tick_t ticks = abs_tick - last_tick;
 	last_tick = abs_tick;
+	write_varint(ticks);
+}
 
-	unsigned char chr1 = (unsigned char)(ticks & 0x7F);
-	ticks >>= 7;
-	if (ticks > 0) {
-	    unsigned char chr2 = (unsigned char)((ticks & 0x7F) | 0x80);
-	    ticks >>= 7;
-	    if (ticks > 0) {
-	        unsigned char chr3 = (unsigned char)((ticks & 0x7F) | 0x80);
-	        ticks >>= 7;
-	        if (ticks > 0) {
-	            unsigned char chr4 = (unsigned char)((ticks & 0x7F) | 0x80);
+void MidiTrack::write_varint(unsigned int value) {
+	unsigned char chr1 = (unsigned char)(value & 0x7F);
+	value >>= 7;
+	if (value > 0) {
+	    unsigned char chr2 = (unsigned char)((value & 0x7F) | 0x80);
+	    value >>= 7;
+	    if (value > 0) {
+	        unsigned char chr3 = (unsigned char)((value & 0x7F) | 0x80);
+	        value >>= 7;
+	        if (value > 0) {
+	            unsigned char chr4 = (unsigned char)((value & 0x7F) | 0x80);
 
 				unsigned char *p = ensure(4);
 				p[length++] = chr4;
@@ -458,6 +461,18 @@ void MidiTrack::write_time(midi_tick_t abs_tick) {
 	} else {
 		unsigned char *p = ensure(1);
 		p[length++] = chr1;
+	}
+}
+
+void MidiTrack::write_meta(midi_tick_t abs_tick, int event, unsigned int len, const char *data) {
+	write_time(abs_tick);
+	unsigned char *p = ensure(2);
+	p[length++] = 0xFF;
+	p[length++] = event & 0x7F;
+	write_varint(len);
+	p = ensure(len);
+	for (unsigned int i = 0; i < len; i++) {
+		p[length++] = data[i];
 	}
 }
 

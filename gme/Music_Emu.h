@@ -15,6 +15,8 @@ struct MidiTrack {
 	midi_tick_t last_tick;
 
 	unsigned char *ensure(size_t n);
+	void write_varint(unsigned int value);
+	void write_meta(midi_tick_t abs_tick, int event, unsigned int len, const char *data);
 	void write_time(midi_tick_t abs_tick);
 	void write_2(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1);
 	void write_3(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2);
