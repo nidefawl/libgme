@@ -706,7 +706,21 @@ void Spc_Dsp::load( uint8_t const regs [register_count] )
 		voice_t& v = m.voices [i];
 		v.brr_offset = 1;
 		v.buf_pos    = v.buf;
+
 		midi[i].mtrk.resize(30000);
+	}
+
+	// Initialize sample->MIDI configuration:
+	for ( i = 0; i < 256; i++ )
+	{
+		sample_midi[i].used = false;
+
+		// String Ensemble 1:
+		sample_midi[i].melodic_patch = 48;
+		// MIDI C5:
+		sample_midi[i].melodic_note = 72;
+		// Disable percussion mapping:
+		sample_midi[i].percussion_note = 0;
 	}
 	m.new_kon = REG(kon);
 	

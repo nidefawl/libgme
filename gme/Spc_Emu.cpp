@@ -365,17 +365,30 @@ bool Spc_Emu::midi_load_support_file(const char* support_filename) {
 		return false;
 	}
 
+	Spc_Dsp &dsp = apu.dsp_();
 	char kind[16];
 	while (!feof(sup)) {
 		strcpy(kind, "");
 		int ret = fscanf(sup, "%15s", kind);
 		if (ret < 0) break;
 
-		// printf("%s ", kind);
-		if (strcmp(kind, "dmc") == 0) {
-		} else if (strcmp(kind, "noise") == 0) {
+		printf("%s ", kind);
+		if (strcmp(kind, "sample") == 0) {
+			int sample;
+			int melodic_patch;
+			int melodic_note;
+			int percussion_note;
+
+			fscanf(sup, "%02X %d %d %d", &sample, &melodic_patch, &melodic_note, &percussion_note);
+			printf("%02X %d %d %d\n", sample, melodic_patch, melodic_note, percussion_note);
+
+			Spc_Dsp::sample_midi_config &spl = dsp.sample_midi[sample];
+			// spl.used = true;
+			spl.melodic_patch = melodic_patch;
+			spl.melodic_note = melodic_note;
+			spl.percussion_note = percussion_note;
 		} else {
-			// printf("\n");
+			printf("\n");
 		}
 	}
 	fclose(sup);
@@ -395,9 +408,13 @@ void Spc_Emu::midi_write_support_file(const char* support_filename) {
 	// Write supporting n2m file if it didn't exist before:
 	sup = fopen(support_filename, "w");
 
-	// Emit default noise mapping:
-	for (int i = 0; i < 32; i++) {
-		//fprintf(sup, "noise %02X %d\n", i, noise->period_midi[i]);
+	// Emit default mapping:
+	const Spc_Dsp &dsp = apu.dsp_();
+	for (int i = 0; i < 256; i++) {
+		const Spc_Dsp::sample_midi_config &spl = dsp.sample_midi[i];
+		if (!spl.used) continue;
+
+		fprintf(sup, "sample %02X %d %d %d\n", i, spl.melodic_patch, spl.melodic_note, spl.percussion_note);
 	}
 
 	fclose(sup);

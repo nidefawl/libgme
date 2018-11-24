@@ -160,19 +160,62 @@ public:
 	MidiTrack midi[voice_count];
 	int abs_sample;
 	int abs_tick() { return abs_sample * 3; }
-	double midi_note(voice_t *v) {
-		int pitch = GET_LE16( &m.regs[(v - m.voices) * 0x10 + v_pitchl] ) & 0x3FFF;
-		double hz = 440 * (double)pitch / (double)0x1000;
-		// 440Hz = concert A4 = MIDI note 69
-		double m = (log(hz / 440) / log(2)) * 12 + 69;
-		return m;
+
+	struct sample_midi_config {
+		bool used;	// whether or not this sample number is actually used in the song
+
+		// melodic_note || percussion_note are mutually exclusive
+		int melodic_patch;	 // MIDI patch number (GM) that represents this sample best
+		int melodic_note;    // MIDI note number this sample was recorded at
+		int percussion_note; // MIDI percussion note on channel 10
+
+		int midi_channel(int voice) {
+			if (percussion_note > 0) {
+				return 9;
+			}
+			return voice;
+		}
+		int midi_patch() {
+			if (percussion_note > 0) {
+				return 0;
+			}
+			return melodic_patch;
+		}
+		double midi_note(int pitch) {
+			if (percussion_note > 0) {
+				return percussion_note;
+			}
+
+			double hz = (double)pitch / (double)0x1000;
+			double m = (log(hz) / log(2)) * 12 + melodic_note;
+
+			return m;
+		}
+	};
+	sample_midi_config sample_midi[256];
+
+	int voice_pitch(int voice) {
+		int pitch = GET_LE16( &m.regs[voice * 0x10 + v_pitchl] ) & 0x3FFF;
+		return pitch;
+	}
+	int voice_sample(int voice) {
+		int sample = m.regs[voice * 0x10 + v_srcn];
+		return sample;
+	}
+
+	double midi_note(int voice) {
+		int sample = voice_sample(voice);
+		int pitch = voice_pitch(voice);
+		return sample_midi[sample].midi_note(pitch);
 	}
 
 	void note_on(voice_t *v) {
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
-		double m = midi_note(v);
+		// Mark sample as used:
+		sample_midi[voice_sample(voice)].used = true;
+		double m = midi_note(voice);
 
 		printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);
 		midi[voice].write_3(
@@ -186,14 +229,14 @@ public:
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
-		double m = midi_note(v);
+		double m = midi_note(voice);
 
 		printf("%9lld OFF %*s %3d\n", tick, voice * 3, "", (int)m);
 		midi[voice].write_3(
 			tick,
 			0x80 | voice,
 			(int)m,
-			0x40
+			0x00
 		);
 	}
 };
