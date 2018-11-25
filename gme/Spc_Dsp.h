@@ -231,8 +231,6 @@ public:
 
 	void decode_sample(int dir, int sample, short *buf, size_t buf_size, size_t *loop_pos);
 
-	bool fft(double real[], double imag[], size_t n);
-
 	void note_on(voice_t *v) {
 		char sample_s[10];
 		int voice = v - m.voices;

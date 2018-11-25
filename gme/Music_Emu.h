@@ -22,6 +22,8 @@ struct MidiTrack {
 	void write_3(midi_tick_t abs_tick, unsigned char cmd, unsigned char data1, unsigned char data2);
 };
 
+bool fft(double real[], double imag[], size_t n);
+
 struct Music_Emu : public Gme_File {
 public:
 // Basic functionality (see Gme_File.h for file loading/track info functions)

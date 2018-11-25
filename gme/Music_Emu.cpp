@@ -5,6 +5,7 @@
 #include "Multi_Buffer.h"
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
@@ -495,4 +496,73 @@ void MidiTrack::write_3(midi_tick_t abs_tick, unsigned char cmd, unsigned char d
 	p[length++] = cmd;
 	p[length++] = data1;
 	p[length++] = data2;
+}
+
+static size_t reverse_bits(size_t x, int n) {
+	size_t result = 0;
+	for (int i = 0; i < n; i++, x >>= 1)
+		result = (result << 1) | (x & 1U);
+	return result;
+}
+
+bool fft(double real[], double imag[], size_t n)
+{
+	// Length variables
+	bool status = false;
+	int levels = 0;  // Compute levels = floor(log2(n))
+	for (size_t temp = n; temp > 1U; temp >>= 1)
+		levels++;
+	if ((size_t)1U << levels != n)
+		return false;  // n is not a power of 2
+	
+	// Trignometric tables
+	if (SIZE_MAX / sizeof(double) < n / 2)
+		return false;
+	size_t size = (n / 2) * sizeof(double);
+	double *cos_table = (double *)malloc(size);
+	double *sin_table = (double *)malloc(size);
+	if (cos_table == NULL || sin_table == NULL)
+		goto cleanup;
+	for (size_t i = 0; i < n / 2; i++) {
+		cos_table[i] = cos(2 * M_PI * i / n);
+		sin_table[i] = sin(2 * M_PI * i / n);
+	}
+	
+	// Bit-reversed addressing permutation
+	for (size_t i = 0; i < n; i++) {
+		size_t j = reverse_bits(i, levels);
+		if (j > i) {
+			double temp = real[i];
+			real[i] = real[j];
+			real[j] = temp;
+			temp = imag[i];
+			imag[i] = imag[j];
+			imag[j] = temp;
+		}
+	}
+	
+	// Cooley-Tukey decimation-in-time radix-2 FFT
+	for (size_t size = 2; size <= n; size *= 2) {
+		size_t halfsize = size / 2;
+		size_t tablestep = n / size;
+		for (size_t i = 0; i < n; i += size) {
+			for (size_t j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
+				size_t l = j + halfsize;
+				double tpre =  real[l] * cos_table[k] + imag[l] * sin_table[k];
+				double tpim = -real[l] * sin_table[k] + imag[l] * cos_table[k];
+				real[l] = real[j] - tpre;
+				imag[l] = imag[j] - tpim;
+				real[j] += tpre;
+				imag[j] += tpim;
+			}
+		}
+		if (size == n)  // Prevent overflow in 'size *= 2'
+			break;
+	}
+	status = true;
+	
+cleanup:
+	free(cos_table);
+	free(sin_table);
+	return status;
 }
