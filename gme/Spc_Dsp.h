@@ -244,22 +244,18 @@ public:
 		// Mark sample as used:
 		if (!spl.used) {
 			// Decode a bit of the sample to be used:
-			const size_t n = 16384;
+			const size_t n = 512;
+			const size_t buf_size = 16384;
 			size_t loop_pos = 0;
-			short buf [n + brr_buf_size];
+			short *buf = (short *)malloc(sizeof(short) * (buf_size + brr_buf_size));
 			double real[n];
 			double imag[n];
 
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < buf_size + brr_buf_size; i++) {
 				buf[i] = 0;
-				real[i] = 0;
-				imag[i] = 0;
-			}
-			for (int i = 0; i < brr_buf_size; i++) {
-				buf[i+n] = 0;
 			}
 
-			decode_sample(m.regs[r_dir], sample, buf, n, &loop_pos);
+			decode_sample(m.regs[r_dir], sample, buf, buf_size, &loop_pos);
 
 			char fname[14];
 			sprintf(fname, "sample%02X.wav", sample);
@@ -293,32 +289,66 @@ public:
 			fwrite(buf, sizeof(short), n, fs);
 			fclose(fs);
 
-			// Determine base frequency of sample using FFT over buf:
-			for (int i = 0; i < n; i++)
-			{
-				real[i] = buf[i] / 32768.0;
-				imag[i] = 0;
-			}
-
-			fft(real, imag, n);
-
-			double maxv = 0;
-			int maxi = 1;
-			for (int i = 1; i < n/2; i++)
-			{
-				int j = i;
-				double mag = sqrt(real[j] * real[j] + imag[j] * imag[j]);
-				if (mag > maxv)
+			if (loop_pos+n < buf_size) {
+				// Determine base frequency of sample using FFT over buf:
+				for (int i = 0; i < n; i++)
 				{
-					maxv = mag;
-					maxi = i;
+					real[i] = buf[i+loop_pos] / 32768.0;
+					imag[i] = 0;
+				}
+
+				fft(real, imag, n);
+
+				double maxv = 0;
+				int k = 1;
+				for (int i = 1; i < n/2; i++)
+				{
+					int j = i;
+					double mag = (real[j] * real[j] + imag[j] * imag[j]);
+					if (mag > maxv)
+					{
+						maxv = mag;
+						k = i;
+					}
+				}
+
+				// Interpolate FFT bins to find more exact frequency:
+				double y1 = sqrt(real[k-1] * real[k-1] + imag[k-1] * imag[k-1]);
+				double y2 = sqrt(real[k]   * real[k]   + imag[k]   * imag[k]);
+				double y3 = sqrt(real[k+1] * real[k+1] + imag[k+1] * imag[k+1]);
+				double kp;
+				if (y1 > y3) {
+					if (y1 > 0) {
+						double a = y2 / y1;
+						double d = a / (1 + a);
+						kp = k - 1 + d;
+					} else {
+						kp = k;
+					}
+				} else {
+					if (y2 > 0) {
+						double a = y3 / y2;
+						double d = a / (1 + a);
+						kp = k + d;
+					} else {
+						kp = k;
+					}
+				}
+
+				spl.base_pitch = kp * 32000.0 / (double)(n);
+			} else {
+				spl.base_pitch = 0;
+				// TODO: do more to try to somehow detect what kind of percussion sample this
+				// is since it does not loop (assuming looping indicates melodic)
+				if (spl.percussion_note == 0) {
+					spl.percussion_note = 38;
 				}
 			}
 
-			spl.base_pitch = maxi * 32000.0 / (double)(n);
 			spl.used = true;
+			printf("sample %02X hz = %9.5f, loop start at %ld\n", sample, spl.base_pitch, loop_pos);
 
-			printf("sample %02X hz = %9.5f\n", sample, spl.base_pitch);
+			free(buf);
 		}
 
 		// Get MIDI note:

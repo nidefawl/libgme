@@ -648,7 +648,7 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size, si
 
 	short* buf_pos = buf;       // place in buffer where next samples will be decoded
 	short* buf_end = buf + buf_size;
-	*loop_pos = 0;
+	*loop_pos = buf_size;
 
 	do
 	{
@@ -672,7 +672,7 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size, si
 			if ( brr_header & 1 )
 			{
 				// Start looping:
-				if (*loop_pos == 0) {
+				if (*loop_pos == buf_size) {
 					*loop_pos = buf_pos - buf;
 				}
 				brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
