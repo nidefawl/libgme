@@ -638,6 +638,82 @@ skip_brr:
 	while ( --count );
 }
 
+void Spc_Dsp::decode_sample(int dir, int sample, int *buf)
+{
+	uint8_t* const ram = m.ram;
+	uint8_t const* const dir_ram = &ram[dir * 0x100];
+
+	// Take looping sample:
+	int brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
+
+	int* buf_pos = buf;       // place in buffer where next samples will be decoded
+
+	int const brr_block_size = 9;
+	int brr_header = ram [brr_addr];
+	for (int brr_offset = 1; brr_offset < brr_block_size; brr_offset += 2)
+	{
+		// Arrange the four input nybbles in 0xABCD order for easy decoding
+		int nybbles = ram [(brr_addr + brr_offset) & 0xFFFF] * 0x100 +
+				ram [(brr_addr + brr_offset + 1) & 0xFFFF];
+
+		// Decode
+		
+		// 0: >>1  1: <<0  2: <<1 ... 12: <<11  13-15: >>4 <<11
+		static unsigned char const shifts [16 * 2] = {
+			13,12,12,12,12,12,12,12,12,12,12, 12, 12, 16, 16, 16,
+			 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 11, 11, 11
+		};
+		int const scale = brr_header >> 4;
+		int const right_shift = shifts [scale];
+		int const left_shift  = shifts [scale + 16];
+		
+		// Write to next four samples in circular buffer
+		int* pos = buf_pos;
+		int* end;
+		
+		// Decode four samples
+		for ( end = pos + 4; pos < end; pos++, nybbles <<= 4 )
+		{
+			// Extract upper nybble and scale appropriately
+			int s = ((int16_t) nybbles >> right_shift) << left_shift;
+			
+			// Apply IIR filter (8 is the most commonly used)
+			int const filter = brr_header & 0x0C;
+			int const p1 = pos [brr_buf_size - 1];
+			int const p2 = pos [brr_buf_size - 2] >> 1;
+			if ( filter >= 8 )
+			{
+				s += p1;
+				s -= p2;
+				if ( filter == 8 ) // s += p1 * 0.953125 - p2 * 0.46875
+				{
+					s += p2 >> 4;
+					s += (p1 * -3) >> 6;
+				}
+				else // s += p1 * 0.8984375 - p2 * 0.40625
+				{
+					s += (p1 * -13) >> 7;
+					s += (p2 * 3) >> 4;
+				}
+			}
+			else if ( filter ) // s += p1 * 0.46875
+			{
+				s += p1 >> 1;
+				s += (-p1) >> 5;
+			}
+			
+			// Adjust and write sample
+			CLAMP16( s );
+			s = (int16_t) (s * 2);
+			pos [brr_buf_size] = pos [0] = s; // second copy simplifies wrap-around
+		}
+
+		if ( pos >= &buf [brr_buf_size] )
+			pos = buf;
+		buf_pos = pos;
+	}
+}
+
 
 //// Setup
 
@@ -715,8 +791,7 @@ void Spc_Dsp::load( uint8_t const regs [register_count] )
 	{
 		sample_midi[i].used = false;
 
-		// String Ensemble 1:
-		sample_midi[i].melodic_patch = 48;
+		sample_midi[i].melodic_patch = 127;
 		// MIDI C5:
 		sample_midi[i].melodic_note = 72;
 		// Disable percussion mapping:

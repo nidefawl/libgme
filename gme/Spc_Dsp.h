@@ -9,6 +9,7 @@
 #include "Music_Emu.h"
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 struct Spc_Dsp {
 public:
@@ -155,6 +156,7 @@ private:
 	void write_outline( int addr, int data );
 	void update_voice_vol( int addr );
 
+	void decode_sample(int dir, int sample, int *buf);
 public:
 // MIDI conversion support:
 	MidiTrack midi[voice_count];
@@ -223,7 +225,7 @@ public:
 	}
 
 	void note_on(voice_t *v) {
-		char sample_s[3];
+		char sample_s[10];
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
@@ -231,7 +233,30 @@ public:
 		sample_midi_config &spl = sample_midi[sample];
 
 		// Mark sample as used:
-		spl.used = true;
+		if (!spl.used) {
+			// Decode the sample to be used:
+			int buf [brr_buf_size*2];
+			decode_sample(m.regs[r_dir], sample, buf);
+
+			// Determine base frequency of sample using FFT over buf:
+			printf("sample %02X %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",
+				sample,
+				buf[0],
+				buf[1],
+				buf[2],
+				buf[3],
+				buf[4],
+				buf[5],
+				buf[6],
+				buf[7],
+				buf[8],
+				buf[9],
+				buf[10],
+				buf[11]
+			);
+			;
+			spl.used = true;
+		}
 
 		// Get MIDI note:
 		double m = midi_note(voice);
@@ -241,21 +266,19 @@ public:
 			int spl_midi_channel = spl.midi_channel(voice);
 
 			// Write a text event describing sample number:
-			sprintf(sample_s, "%02X", sample);
-			midi[voice].write_meta(tick, 0x01, 2, sample_s);
+			sprintf(sample_s, "sample %02X", sample);
+			midi[voice].write_meta(tick, 0x01, strlen(sample_s), sample_s);
 			voice_midi[voice].sample = sample;
 			voice_midi[voice].midi_channel = spl_midi_channel;
 
 			// Write a patch change:
 			int new_patch = spl.midi_patch();
-			// if (midi_channel[spl_midi_channel].patch != new_patch) {
-				midi[voice].write_2(
-					tick,
-					0xC0 | spl_midi_channel,
-					new_patch
-				);
-				midi_channel[spl_midi_channel].patch = new_patch;
-			// }
+			midi[voice].write_2(
+				tick,
+				0xC0 | spl_midi_channel,
+				new_patch
+			);
+			midi_channel[spl_midi_channel].patch = new_patch;
 		}
 
 		// printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);

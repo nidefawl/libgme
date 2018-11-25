@@ -397,13 +397,14 @@ bool Spc_Emu::midi_load_support_file(const char* support_filename) {
 }
 
 void Spc_Emu::midi_write_support_file(const char* support_filename) {
-	// Test if file exists:
-	FILE *sup = fopen(support_filename, "r");
-	if (sup != NULL) {
-		// Don't overwrite it:
-		fclose(sup);
-		return;
-	}
+	FILE *sup;
+	// // Test if file exists:
+	// sup = fopen(support_filename, "r");
+	// if (sup != NULL) {
+	// 	// Don't overwrite it:
+	// 	fclose(sup);
+	// 	return;
+	// }
 
 	// Write supporting n2m file if it didn't exist before:
 	sup = fopen(support_filename, "w");
