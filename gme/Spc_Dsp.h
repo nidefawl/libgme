@@ -262,7 +262,7 @@ public:
 				// Determine base frequency of sample using FFT over buf:
 				for (int i = 0; i < n; i++)
 				{
-					real[i] = buf[i+loop_pos] / 32768.0;
+					real[i] = buf[16384-n+i] / 32768.0;
 					imag[i] = 0;
 				}
 
