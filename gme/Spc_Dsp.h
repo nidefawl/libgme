@@ -229,7 +229,7 @@ public:
 		return sample_midi[sample].midi_note(pitch);
 	}
 
-	void decode_sample(int dir, int sample, short *buf, size_t buf_size);
+	void decode_sample(int dir, int sample, short *buf, size_t buf_size, size_t *loop_pos);
 
 	bool fft(double real[], double imag[], size_t n);
 
@@ -245,6 +245,7 @@ public:
 		if (!spl.used) {
 			// Decode a bit of the sample to be used:
 			const size_t n = 16384;
+			size_t loop_pos = 0;
 			short buf [n + brr_buf_size];
 			double real[n];
 			double imag[n];
@@ -258,7 +259,7 @@ public:
 				buf[i+n] = 0;
 			}
 
-			decode_sample(m.regs[r_dir], sample, buf, n);
+			decode_sample(m.regs[r_dir], sample, buf, n, &loop_pos);
 
 			char fname[14];
 			sprintf(fname, "sample%02X.wav", sample);

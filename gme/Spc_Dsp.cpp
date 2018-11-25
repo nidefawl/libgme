@@ -638,7 +638,7 @@ skip_brr:
 	while ( --count );
 }
 
-void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size)
+void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size, size_t *loop_pos)
 {
 	uint8_t* const ram = m.ram;
 	uint8_t const* const dir_ram = &ram[dir * 0x100];
@@ -648,12 +648,14 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size)
 
 	short* buf_pos = buf;       // place in buffer where next samples will be decoded
 	short* buf_end = buf + buf_size;
+	*loop_pos = 0;
 
 	do
 	{
 		int brr_header = ram [brr_addr];
 
 		if ((brr_header & 3) == 1) {
+			// Stop reading more samples:
 			break;
 		}
 
@@ -669,6 +671,10 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size)
 			assert( brr_offset == brr_block_size );
 			if ( brr_header & 1 )
 			{
+				// Start looping:
+				if (*loop_pos == 0) {
+					*loop_pos = buf_pos - buf;
+				}
 				brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
 			}
 			brr_offset  = 1;
