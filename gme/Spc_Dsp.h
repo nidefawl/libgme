@@ -257,35 +257,7 @@ public:
 
 			char fname[14];
 			sprintf(fname, "sample%02X.wav", sample);
-			FILE *fs = fopen(fname, "wb");
-			int tmp;
-			fwrite("RIFF", 1, 4, fs);
-			tmp = (buf_size * 2) + 0x20;
-			fwrite(&tmp, 1, 4, fs);
-			fwrite("WAVE", 1, 4, fs);
-			fwrite("fmt ", 1, 4, fs);
-			tmp = 0x10;
-			fwrite(&tmp, 1, 4, fs);
-			tmp = 1;
-			fwrite(&tmp, 1, 2, fs);
-			fwrite(&tmp, 1, 2, fs);
-			tmp = 32000;
-			fwrite(&tmp, 1, 2, fs);
-			tmp = 0;
-			fwrite(&tmp, 1, 2, fs);
-			tmp = 0xFA00;
-			fwrite(&tmp, 1, 2, fs);
-			tmp = 0;
-			fwrite(&tmp, 1, 2, fs);
-			tmp = 2;
-			fwrite(&tmp, 1, 2, fs);
-			tmp = 0x10;
-			fwrite(&tmp, 1, 2, fs);
-			fwrite("data", 1, 4, fs);
-			tmp = buf_size * 2;
-			fwrite(&tmp, 1, 2, fs);
-			fwrite(buf, sizeof(short), buf_size, fs);
-			fclose(fs);
+			write_wave_file(fname, buf, buf_size, 32000);
 
 			if (loop_pos+n < buf_size) {
 				// Determine base frequency of sample using FFT over buf:

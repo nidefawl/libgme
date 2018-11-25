@@ -566,3 +566,38 @@ cleanup:
 	free(sin_table);
 	return status;
 }
+
+void write_wave_file(const char *fname, const short *buf, size_t buf_size, unsigned short sample_rate)
+{
+	FILE *fs = fopen(fname, "wb");
+	int tmp;
+	fwrite("RIFF", 1, 4, fs);
+	tmp = (buf_size * 2) + 0x20;
+	fwrite(&tmp, 1, 4, fs);
+	fwrite("WAVE", 1, 4, fs);
+	fwrite("fmt ", 1, 4, fs);
+	tmp = 0x10;
+	fwrite(&tmp, 1, 4, fs);
+	tmp = 1;
+	fwrite(&tmp, 1, 2, fs);
+	fwrite(&tmp, 1, 2, fs);
+	tmp = sample_rate;
+	fwrite(&tmp, 1, 2, fs);
+	tmp = 0;
+	fwrite(&tmp, 1, 2, fs);
+	// TODO: what is this field?
+	tmp = 0xFA00;
+	fwrite(&tmp, 1, 2, fs);
+	tmp = 0;
+	fwrite(&tmp, 1, 2, fs);
+	tmp = 2;
+	fwrite(&tmp, 1, 2, fs);
+	// 16-bit sample?
+	tmp = 0x10;
+	fwrite(&tmp, 1, 2, fs);
+	fwrite("data", 1, 4, fs);
+	tmp = buf_size * 2;
+	fwrite(&tmp, 1, 2, fs);
+	fwrite(buf, sizeof(short), buf_size, fs);
+	fclose(fs);
+}

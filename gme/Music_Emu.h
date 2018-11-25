@@ -24,6 +24,8 @@ struct MidiTrack {
 
 bool fft(double real[], double imag[], size_t n);
 
+void write_wave_file(const char *fname, const short *buf, size_t buf_size, unsigned short sample_rate);
+
 struct Music_Emu : public Gme_File {
 public:
 // Basic functionality (see Gme_File.h for file loading/track info functions)
