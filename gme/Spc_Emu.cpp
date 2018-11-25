@@ -376,16 +376,16 @@ bool Spc_Emu::midi_load_support_file(const char* support_filename) {
 		if (strcmp(kind, "sample") == 0) {
 			int sample;
 			int melodic_patch;
-			int melodic_note;
+			int melodic_transpose;
 			int percussion_note;
 
-			fscanf(sup, "%02X %d %d %d", &sample, &melodic_patch, &melodic_note, &percussion_note);
-			printf("%02X %d %d %d\n", sample, melodic_patch, melodic_note, percussion_note);
+			fscanf(sup, "%02X %d %d %d", &sample, &melodic_patch, &melodic_transpose, &percussion_note);
+			printf("%02X %d %d %d\n", sample, melodic_patch, melodic_transpose, percussion_note);
 
 			Spc_Dsp::sample_midi_config &spl = dsp.sample_midi[sample];
 			// spl.used = true;
 			spl.melodic_patch = melodic_patch;
-			spl.melodic_note = melodic_note;
+			spl.melodic_transpose = melodic_transpose;
 			spl.percussion_note = percussion_note;
 		} else {
 			printf("\n");
@@ -415,7 +415,7 @@ void Spc_Emu::midi_write_support_file(const char* support_filename) {
 		const Spc_Dsp::sample_midi_config &spl = dsp.sample_midi[i];
 		if (!spl.used) continue;
 
-		fprintf(sup, "sample %02X %d %d %d\n", i, spl.melodic_patch, spl.melodic_note, spl.percussion_note);
+		fprintf(sup, "sample %02X %d %d %d\n", i, spl.melodic_patch, spl.melodic_transpose, spl.percussion_note);
 	}
 
 	fclose(sup);

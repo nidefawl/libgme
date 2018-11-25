@@ -181,9 +181,9 @@ public:
 	struct sample_midi_config {
 		bool used;	// whether or not this sample number is actually used in the song
 
-		// melodic_note || percussion_note are mutually exclusive
+		// melodic_transpose || percussion_note are mutually exclusive
 		int melodic_patch;	 // MIDI patch number (GM) that represents this sample best
-		int melodic_note;    // MIDI note number this sample was recorded at
+		int melodic_transpose;    // MIDI note number this sample was recorded at
 		int percussion_note; // MIDI percussion note on channel 10
 
 		double base_pitch;
@@ -206,7 +206,7 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			double m = ((log(base_pitch * scale) / log(2)) * 12) + melodic_note;
+			double m = ((log(base_pitch * scale) / log(2)) * 12) + melodic_transpose;
 
 			return m;
 		}
@@ -311,7 +311,7 @@ public:
 				// is since it does not loop (assuming looping indicates melodic)
 				if (spl.percussion_note == 0) {
 					spl.percussion_note = 38;
-					spl.melodic_note = 0;
+					spl.melodic_transpose = 0;
 					spl.melodic_patch = 0;
 				}
 			}

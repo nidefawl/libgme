@@ -774,7 +774,7 @@ void Spc_Dsp::init( void* ram_64k )
 			sample_midi[i].used = false;
 
 			sample_midi[i].melodic_patch = 48;
-			sample_midi[i].melodic_note = 0;
+			sample_midi[i].melodic_transpose = 0;
 
 			// Disable percussion mapping:
 			sample_midi[i].percussion_note = 0;
