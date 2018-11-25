@@ -663,23 +663,6 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size, si
 		int nybbles = ram [(brr_addr + brr_offset) & 0xFFFF] * 0x100 +
 				ram [(brr_addr + brr_offset + 1) & 0xFFFF];
 
-		int const brr_block_size = 9;
-		if ( (brr_offset += 2) >= brr_block_size )
-		{
-			// Next BRR block
-			brr_addr = (brr_addr + brr_block_size) & 0xFFFF;
-			assert( brr_offset == brr_block_size );
-			if ( brr_header & 1 )
-			{
-				// Start looping:
-				if (*loop_pos == buf_size) {
-					*loop_pos = buf_pos - buf;
-				}
-				brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
-			}
-			brr_offset  = 1;
-		}
-
 		// Decode
 		
 		// 0: >>1  1: <<0  2: <<1 ... 12: <<11  13-15: >>4 <<11
@@ -734,6 +717,23 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size, si
 			if (pos < buf_end) {
 				pos [brr_buf_size] = pos [0] = s; // second copy simplifies wrap-around
 			}
+		}
+
+		int const brr_block_size = 9;
+		if ( (brr_offset += 2) >= brr_block_size )
+		{
+			// Next BRR block
+			brr_addr = (brr_addr + brr_block_size) & 0xFFFF;
+			assert( brr_offset == brr_block_size );
+			if ( brr_header & 1 )
+			{
+				// Start looping:
+				if (*loop_pos == buf_size) {
+					*loop_pos = (pos + 4) - buf;
+				}
+				brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
+			}
+			brr_offset  = 1;
 		}
 
 		buf_pos = pos;
