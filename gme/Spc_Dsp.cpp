@@ -638,23 +638,37 @@ skip_brr:
 	while ( --count );
 }
 
-void Spc_Dsp::decode_sample(int dir, int sample, int *buf)
+void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size)
 {
 	uint8_t* const ram = m.ram;
 	uint8_t const* const dir_ram = &ram[dir * 0x100];
 
-	// Take looping sample:
-	int brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
+	int brr_addr = GET_LE16A( &dir_ram[sample * 4 + 0 * 2] );
+	int brr_offset = 1;
 
-	int* buf_pos = buf;       // place in buffer where next samples will be decoded
+	short* buf_pos = buf;       // place in buffer where next samples will be decoded
+	short* buf_end = buf + buf_size;
 
-	int const brr_block_size = 9;
-	int brr_header = ram [brr_addr];
-	for (int brr_offset = 1; brr_offset < brr_block_size; brr_offset += 2)
+	do
 	{
+		int brr_header = ram [brr_addr];
+
 		// Arrange the four input nybbles in 0xABCD order for easy decoding
 		int nybbles = ram [(brr_addr + brr_offset) & 0xFFFF] * 0x100 +
 				ram [(brr_addr + brr_offset + 1) & 0xFFFF];
+
+		int const brr_block_size = 9;
+		if ( (brr_offset += 2) >= brr_block_size )
+		{
+			// Next BRR block
+			brr_addr = (brr_addr + brr_block_size) & 0xFFFF;
+			assert( brr_offset == brr_block_size );
+			if ( brr_header & 1 )
+			{
+				brr_addr = GET_LE16A( &dir_ram[sample * 4 + 1 * 2] );
+			}
+			brr_offset  = 1;
+		}
 
 		// Decode
 		
@@ -668,8 +682,8 @@ void Spc_Dsp::decode_sample(int dir, int sample, int *buf)
 		int const left_shift  = shifts [scale + 16];
 		
 		// Write to next four samples in circular buffer
-		int* pos = buf_pos;
-		int* end;
+		short* pos = buf_pos;
+		short* end;
 		
 		// Decode four samples
 		for ( end = pos + 4; pos < end; pos++, nybbles <<= 4 )
@@ -705,13 +719,84 @@ void Spc_Dsp::decode_sample(int dir, int sample, int *buf)
 			// Adjust and write sample
 			CLAMP16( s );
 			s = (int16_t) (s * 2);
-			pos [brr_buf_size] = pos [0] = s; // second copy simplifies wrap-around
+
+			// Avoid writing past end of buffer:
+			if (pos + brr_buf_size < buf_end) {
+				pos [brr_buf_size] = pos [0] = s; // second copy simplifies wrap-around
+			}
 		}
 
-		if ( pos >= &buf [brr_buf_size] )
-			pos = buf;
 		buf_pos = pos;
+	} while (buf_pos + brr_buf_size < buf_end);
+}
+
+static size_t reverse_bits(size_t x, int n) {
+	size_t result = 0;
+	for (int i = 0; i < n; i++, x >>= 1)
+		result = (result << 1) | (x & 1U);
+	return result;
+}
+
+bool Spc_Dsp::fft(double real[], double imag[], size_t n)
+{
+	// Length variables
+	bool status = false;
+	int levels = 0;  // Compute levels = floor(log2(n))
+	for (size_t temp = n; temp > 1U; temp >>= 1)
+		levels++;
+	if ((size_t)1U << levels != n)
+		return false;  // n is not a power of 2
+	
+	// Trignometric tables
+	if (SIZE_MAX / sizeof(double) < n / 2)
+		return false;
+	size_t size = (n / 2) * sizeof(double);
+	double *cos_table = (double *)malloc(size);
+	double *sin_table = (double *)malloc(size);
+	if (cos_table == NULL || sin_table == NULL)
+		goto cleanup;
+	for (size_t i = 0; i < n / 2; i++) {
+		cos_table[i] = cos(2 * M_PI * i / n);
+		sin_table[i] = sin(2 * M_PI * i / n);
 	}
+	
+	// Bit-reversed addressing permutation
+	for (size_t i = 0; i < n; i++) {
+		size_t j = reverse_bits(i, levels);
+		if (j > i) {
+			double temp = real[i];
+			real[i] = real[j];
+			real[j] = temp;
+			temp = imag[i];
+			imag[i] = imag[j];
+			imag[j] = temp;
+		}
+	}
+	
+	// Cooley-Tukey decimation-in-time radix-2 FFT
+	for (size_t size = 2; size <= n; size *= 2) {
+		size_t halfsize = size / 2;
+		size_t tablestep = n / size;
+		for (size_t i = 0; i < n; i += size) {
+			for (size_t j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
+				size_t l = j + halfsize;
+				double tpre =  real[l] * cos_table[k] + imag[l] * sin_table[k];
+				double tpim = -real[l] * sin_table[k] + imag[l] * cos_table[k];
+				real[l] = real[j] - tpre;
+				imag[l] = imag[j] - tpim;
+				real[j] += tpre;
+				imag[j] += tpim;
+			}
+		}
+		if (size == n)  // Prevent overflow in 'size *= 2'
+			break;
+	}
+	status = true;
+	
+cleanup:
+	free(cos_table);
+	free(sin_table);
+	return status;
 }
 
 

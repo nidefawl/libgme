@@ -156,7 +156,6 @@ private:
 	void write_outline( int addr, int data );
 	void update_voice_vol( int addr );
 
-	void decode_sample(int dir, int sample, int *buf);
 public:
 // MIDI conversion support:
 	MidiTrack midi[voice_count];
@@ -183,6 +182,8 @@ public:
 		int melodic_patch;	 // MIDI patch number (GM) that represents this sample best
 		int melodic_note;    // MIDI note number this sample was recorded at
 		int percussion_note; // MIDI percussion note on channel 10
+
+		double base_pitch;
 
 		int midi_channel(int voice) {
 			if (percussion_note > 0) {
@@ -224,6 +225,10 @@ public:
 		return sample_midi[sample].midi_note(pitch);
 	}
 
+	void decode_sample(int dir, int sample, short *buf, size_t buf_size);
+
+	bool fft(double real[], double imag[], size_t n);
+
 	void note_on(voice_t *v) {
 		char sample_s[10];
 		int voice = v - m.voices;
@@ -235,27 +240,79 @@ public:
 		// Mark sample as used:
 		if (!spl.used) {
 			// Decode the sample to be used:
-			int buf [brr_buf_size*2];
-			decode_sample(m.regs[r_dir], sample, buf);
+			const size_t n = 4096;
+			short buf [n];
+			double real[n];
+			double imag[n];
+
+			for (int i = 0; i < n; i++) {
+				buf[i] = 0;
+				real[i] = 0;
+				imag[i] = 0;
+			}
+
+			decode_sample(m.regs[r_dir], sample, buf, n);
+
+			char fname[14];
+			sprintf(fname, "sample%02X.wav", sample);
+			FILE *fs = fopen(fname, "wb");
+			int tmp;
+			fwrite("RIFF", 1, 4, fs);
+			tmp = (n * 2) + 0x20;
+			fwrite(&tmp, 1, 4, fs);
+			fwrite("WAVE", 1, 4, fs);
+			fwrite("fmt ", 1, 4, fs);
+			tmp = 0x10;
+			fwrite(&tmp, 1, 4, fs);
+			tmp = 1;
+			fwrite(&tmp, 1, 2, fs);
+			fwrite(&tmp, 1, 2, fs);
+			tmp = 32000;
+			fwrite(&tmp, 1, 2, fs);
+			tmp = 0;
+			fwrite(&tmp, 1, 2, fs);
+			tmp = 0xFA00;
+			fwrite(&tmp, 1, 2, fs);
+			tmp = 0;
+			fwrite(&tmp, 1, 2, fs);
+			tmp = 2;
+			fwrite(&tmp, 1, 2, fs);
+			tmp = 0x10;
+			fwrite(&tmp, 1, 2, fs);
+			fwrite("data", 1, 4, fs);
+			tmp = n * 2;
+			fwrite(&tmp, 1, 2, fs);
+			fwrite(buf, sizeof(short), n, fs);
+			fclose(fs);
 
 			// Determine base frequency of sample using FFT over buf:
-			printf("sample %02X %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",
-				sample,
-				buf[0],
-				buf[1],
-				buf[2],
-				buf[3],
-				buf[4],
-				buf[5],
-				buf[6],
-				buf[7],
-				buf[8],
-				buf[9],
-				buf[10],
-				buf[11]
-			);
-			;
+			for (int i = 0; i < n; i++)
+			{
+				real[i] = buf[i] / 32768.0;
+				imag[i] = 0;
+			}
+
+			fft(real, imag, n);
+
+			// printf("fft\n");
+			double maxv = 0;
+			int maxi = 1;
+			for (int i = 1; i < n/2; i++)
+			{
+				int j = i;
+				double mag = sqrt(real[j] * real[j] + imag[j] * imag[j]);
+				if (mag > maxv)
+				{
+					maxv = mag;
+					maxi = i;
+				}
+				// printf("  %9.5f\n", mag);
+			}
+
+			spl.base_pitch = maxi * 32000.0 / (double)(n);
 			spl.used = true;
+
+			printf("sample %02X hz = %9.5f\n", sample, spl.base_pitch);
 		}
 
 		// Get MIDI note:
