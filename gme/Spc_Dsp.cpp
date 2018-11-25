@@ -818,12 +818,31 @@ void Spc_Dsp::mute_voices( int mask )
 
 void Spc_Dsp::init( void* ram_64k )
 {
+	printf("dsp::init\n");
 	m.ram = (uint8_t*) ram_64k;
 	mute_voices( 0 );
 	disable_surround( false );
 	set_output( 0, 0 );
 	reset();
 	
+	// Initialize sample->MIDI configuration:
+	{
+		int i;
+		for (i = 0; i < voice_count; i++) {
+			midi[i].mtrk.resize(30000);
+		}
+		for ( i = 0; i < 256; i++ )
+		{
+			sample_midi[i].used = false;
+
+			sample_midi[i].melodic_patch = 127;
+			// MIDI C5:
+			sample_midi[i].melodic_note = 72;
+			// Disable percussion mapping:
+			sample_midi[i].percussion_note = 0;
+		}
+	}
+
 	#ifndef NDEBUG
 		// be sure this sign-extends
 		assert( (int16_t) 0x8000 == -0x8000 );
@@ -871,21 +890,8 @@ void Spc_Dsp::load( uint8_t const regs [register_count] )
 		voice_t& v = m.voices [i];
 		v.brr_offset = 1;
 		v.buf_pos    = v.buf;
-
-		midi[i].mtrk.resize(30000);
 	}
 
-	// Initialize sample->MIDI configuration:
-	for ( i = 0; i < 256; i++ )
-	{
-		sample_midi[i].used = false;
-
-		sample_midi[i].melodic_patch = 127;
-		// MIDI C5:
-		sample_midi[i].melodic_note = 72;
-		// Disable percussion mapping:
-		sample_midi[i].percussion_note = 0;
-	}
 	m.new_kon = REG(kon);
 	
 	mute_voices( m.mute_mask );

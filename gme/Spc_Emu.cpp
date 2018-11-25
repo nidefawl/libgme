@@ -372,7 +372,7 @@ bool Spc_Emu::midi_load_support_file(const char* support_filename) {
 		int ret = fscanf(sup, "%15s", kind);
 		if (ret < 0) break;
 
-		// printf("%s ", kind);
+		printf("%s ", kind);
 		if (strcmp(kind, "sample") == 0) {
 			int sample;
 			int melodic_patch;
@@ -380,7 +380,7 @@ bool Spc_Emu::midi_load_support_file(const char* support_filename) {
 			int percussion_note;
 
 			fscanf(sup, "%02X %d %d %d", &sample, &melodic_patch, &melodic_note, &percussion_note);
-			// printf("%02X %d %d %d\n", sample, melodic_patch, melodic_note, percussion_note);
+			printf("%02X %d %d %d\n", sample, melodic_patch, melodic_note, percussion_note);
 
 			Spc_Dsp::sample_midi_config &spl = dsp.sample_midi[sample];
 			// spl.used = true;
@@ -388,7 +388,7 @@ bool Spc_Emu::midi_load_support_file(const char* support_filename) {
 			spl.melodic_note = melodic_note;
 			spl.percussion_note = percussion_note;
 		} else {
-			// printf("\n");
+			printf("\n");
 		}
 	}
 	fclose(sup);

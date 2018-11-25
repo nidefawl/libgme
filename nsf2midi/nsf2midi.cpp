@@ -64,14 +64,14 @@ int main(int argc, char **argv)
 	
 	// Load music file into emulator
 	handle_error( emu->load_file( filename ) );
-	
-	// Start track
-	handle_error( emu->start_track( track ) );
 
 	bool midi_supported = emu->midi_supported();
 	if (midi_supported) {
 		emu->midi_load_support_file(support_filename);
 	}
+
+	// Start track
+	handle_error( emu->start_track( track ) );
 
 	// replace '.nsf' extension with '.wav':
 	char *wav_filename = (char *)malloc(strlen(filename)+4+1);

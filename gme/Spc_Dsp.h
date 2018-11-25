@@ -202,8 +202,9 @@ public:
 				return percussion_note;
 			}
 
-			double hz = (double)pitch / (double)0x1000;
-			double m = (log(hz) / log(2)) * 12 + melodic_note;
+			double scale = pitch / (double)0x1000;
+			// double m = (log(hz) / log(2)) * 12 + melodic_note;
+			double m = ((log(base_pitch * scale) / log(2)) * 12);
 
 			return m;
 		}
@@ -239,7 +240,7 @@ public:
 
 		// Mark sample as used:
 		if (!spl.used) {
-			// Decode the sample to be used:
+			// Decode a bit of the sample to be used:
 			const size_t n = 8192;
 			short buf [n + brr_buf_size];
 			double real[n];
@@ -297,7 +298,6 @@ public:
 
 			fft(real, imag, n);
 
-			// printf("fft\n");
 			double maxv = 0;
 			int maxi = 1;
 			for (int i = 1; i < n/2; i++)
@@ -309,7 +309,6 @@ public:
 					maxv = mag;
 					maxi = i;
 				}
-				// printf("  %9.5f\n", mag);
 			}
 
 			spl.base_pitch = maxi * 32000.0 / (double)(n);
