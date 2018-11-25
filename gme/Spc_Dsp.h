@@ -240,8 +240,8 @@ public:
 		// Mark sample as used:
 		if (!spl.used) {
 			// Decode the sample to be used:
-			const size_t n = 4096;
-			short buf [n];
+			const size_t n = 8192;
+			short buf [n + brr_buf_size];
 			double real[n];
 			double imag[n];
 
@@ -249,6 +249,9 @@ public:
 				buf[i] = 0;
 				real[i] = 0;
 				imag[i] = 0;
+			}
+			for (int i = 0; i < brr_buf_size; i++) {
+				buf[i+n] = 0;
 			}
 
 			decode_sample(m.regs[r_dir], sample, buf, n);

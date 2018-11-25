@@ -653,6 +653,10 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size)
 	{
 		int brr_header = ram [brr_addr];
 
+		if ((brr_header & 3) == 1) {
+			break;
+		}
+
 		// Arrange the four input nybbles in 0xABCD order for easy decoding
 		int nybbles = ram [(brr_addr + brr_offset) & 0xFFFF] * 0x100 +
 				ram [(brr_addr + brr_offset + 1) & 0xFFFF];
@@ -721,13 +725,13 @@ void Spc_Dsp::decode_sample(int dir, int sample, short *buf, size_t buf_size)
 			s = (int16_t) (s * 2);
 
 			// Avoid writing past end of buffer:
-			if (pos + brr_buf_size < buf_end) {
+			if (pos < buf_end) {
 				pos [brr_buf_size] = pos [0] = s; // second copy simplifies wrap-around
 			}
 		}
 
 		buf_pos = pos;
-	} while (buf_pos + brr_buf_size < buf_end);
+	} while (buf_pos < buf_end);
 }
 
 static size_t reverse_bits(size_t x, int n) {
