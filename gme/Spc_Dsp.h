@@ -244,7 +244,7 @@ public:
 		// Mark sample as used:
 		if (!spl.used) {
 			// Decode a bit of the sample to be used:
-			const size_t n = 512;
+			const size_t n = 1024;
 			const size_t buf_size = 16384;
 			size_t loop_pos = 0;
 			short *buf = (short *)malloc(sizeof(short) * (buf_size + brr_buf_size));
@@ -262,7 +262,7 @@ public:
 			FILE *fs = fopen(fname, "wb");
 			int tmp;
 			fwrite("RIFF", 1, 4, fs);
-			tmp = (n * 2) + 0x20;
+			tmp = (buf_size * 2) + 0x20;
 			fwrite(&tmp, 1, 4, fs);
 			fwrite("WAVE", 1, 4, fs);
 			fwrite("fmt ", 1, 4, fs);
@@ -284,9 +284,9 @@ public:
 			tmp = 0x10;
 			fwrite(&tmp, 1, 2, fs);
 			fwrite("data", 1, 4, fs);
-			tmp = n * 2;
+			tmp = buf_size * 2;
 			fwrite(&tmp, 1, 2, fs);
-			fwrite(buf, sizeof(short), n, fs);
+			fwrite(buf, sizeof(short), buf_size, fs);
 			fclose(fs);
 
 			if (loop_pos+n < buf_size) {
@@ -335,7 +335,7 @@ public:
 					}
 				}
 
-				spl.base_pitch = kp * 32000.0 / (double)(n);
+				spl.base_pitch = kp * 32000.0 / (double)n;
 			} else {
 				spl.base_pitch = 0;
 				// TODO: do more to try to somehow detect what kind of percussion sample this
