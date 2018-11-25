@@ -204,7 +204,7 @@ public:
 
 			double scale = pitch / (double)0x1000;
 			// double m = (log(hz) / log(2)) * 12 + melodic_note;
-			double m = ((log(base_pitch * scale) / log(2)) * 12);
+			double m = ((log(base_pitch * scale) / log(2)) * 12) - 36;
 
 			return m;
 		}
