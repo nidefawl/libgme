@@ -172,6 +172,9 @@ public:
 	struct midi_channel_state {
 		int note;
 		int patch;
+
+		int pan;
+		int volume;
 	};
 	midi_channel_state midi_channel[16];
 
@@ -241,7 +244,7 @@ public:
 		// Mark sample as used:
 		if (!spl.used) {
 			// Decode a bit of the sample to be used:
-			const size_t n = 8192;
+			const size_t n = 16384;
 			short buf [n + brr_buf_size];
 			double real[n];
 			double imag[n];
@@ -340,21 +343,39 @@ public:
 			midi_channel[spl_midi_channel].patch = new_patch;
 		}
 
-		// printf("%9lld ON  %*s %3d\n", tick, voice * 3, "", (int)m);
+		int ch = voice_midi[voice].midi_channel;
+
+		int v0 = v->volume[0] * 3;
+		int v1 = v->volume[1] * 3;
+
+		// printf("%3d %3d\n", v0, v1);
+		int pan = 64 - (v0 >> 1) + (v1 >> 1);
+		if (pan != midi_channel[ch].pan)
+		{
+			midi[voice].write_3(
+				tick,
+				0xB0 | ch,
+				10, // Pan
+				pan
+			);
+			midi_channel[ch].pan = pan;
+		}
+
+		int vel = (v0 + v1) >> 1;
+
 		midi[voice].write_3(
 			tick,
-			0x90 | voice_midi[voice].midi_channel,
+			0x90 | ch,
 			(int)m,
-			0x40
+			vel
 		);
-		midi_channel[voice_midi[voice].midi_channel].note = (int)m;
+		midi_channel[ch].note = (int)m;
 	}
 
 	void note_off(voice_t *v) {
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
-		// printf("%9lld OFF %*s %3d\n", tick, voice * 3, "", (int)m);
 		midi[voice].write_3(
 			tick,
 			0x80 | voice_midi[voice].midi_channel,
