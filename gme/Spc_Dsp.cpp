@@ -765,16 +765,17 @@ void Spc_Dsp::init( void* ram_64k )
 	// Initialize sample->MIDI configuration:
 	{
 		int i;
-		for (i = 0; i < voice_count; i++) {
+		for ( i = 0; i < voice_count; i++ )
+		{
 			midi[i].mtrk.resize(30000);
 		}
 		for ( i = 0; i < 256; i++ )
 		{
 			sample_midi[i].used = false;
 
-			sample_midi[i].melodic_patch = 127;
-			// MIDI C5:
-			sample_midi[i].melodic_note = 72;
+			sample_midi[i].melodic_patch = 48;
+			sample_midi[i].melodic_note = 0;
+
 			// Disable percussion mapping:
 			sample_midi[i].percussion_note = 0;
 		}

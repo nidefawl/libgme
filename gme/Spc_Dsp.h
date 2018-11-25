@@ -206,8 +206,7 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			// double m = (log(hz) / log(2)) * 12 + melodic_note;
-			double m = ((log(base_pitch * scale) / log(2)) * 12) - 36;
+			double m = ((log(base_pitch * scale) / log(2)) * 12) + melodic_note;
 
 			return m;
 		}
@@ -312,6 +311,8 @@ public:
 				// is since it does not loop (assuming looping indicates melodic)
 				if (spl.percussion_note == 0) {
 					spl.percussion_note = 38;
+					spl.melodic_note = 0;
+					spl.melodic_patch = 0;
 				}
 			}
 
