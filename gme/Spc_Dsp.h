@@ -284,6 +284,13 @@ public:
 				// Take abs magnitude of FFT result:
 				fft_mag(real, imag, n);
 
+			#if 0
+				for (int i = 1; i < n/2; i++)
+				{
+					printf("  [%3d] %9.5f\n", i, real[i]);
+				}
+			#endif
+
 				const int peak_count = 4;
 				int peaks[peak_count];
 				fft_peaks(real, n, peaks, peak_count);
@@ -291,20 +298,13 @@ public:
 				int k = fft_min_peak(peaks, peak_count, 4);
 
 				printf(
-					"  %9.3f of [%9.3f %9.3f %9.3f %9.3f]\n",
-					k * 32000.0 / (double)n,
-					peaks[0] * 32000.0 / (double)n,
-					peaks[1] * 32000.0 / (double)n,
-					peaks[2] * 32000.0 / (double)n,
-					peaks[3] * 32000.0 / (double)n
+					"  %4d of [%4d, %4d, %4d, %4d]\n",
+					k,
+					peaks[0],
+					peaks[1],
+					peaks[2],
+					peaks[3]
 				);
-
-			#if 0
-				for (int i = 1; i < n/2; i++)
-				{
-					printf("  [%3d] %9.5f\n", i, real[i]);
-				}
-			#endif
 
 			#if 0
 				// Find first highest peak frequency bin:

@@ -579,31 +579,41 @@ void fft_peaks(double mag[], size_t n, int peaks[], size_t peak_count)
 {
 	for (int i = 0; i < peak_count; i++)
 	{
+		peaks[i] = 0;
+	}
+
+	int last_max = n/2;
+	for (int i = 0; i < peak_count; i++)
+	{
 		double max = 0;
-		peaks[i] = 1;
-		for (int j = 1; j < n/2; j++)
+
+		for (int j = 1; j < last_max; j++)
 		{
 			if (mag[j] <= max) continue;
-
-			// Already found this peak?
-			bool hit = false;
-			for (int m = 0; m < i; m++)
-			{
-				if (j >= peaks[m]-1 && j <= peaks[m]+1)
-				{
-					hit = true;
-					break;
-				}
-			}
-
-			// Skip it:
-			if (hit) continue;
 
 			max = mag[j];
 			peaks[i] = j;
 		}
+
+		// Peak too low relative to last peak?
+		if ((i > 0) && (mag[peaks[i]] / mag[peaks[i-1]] < 0.2))
+		{
+			// Clear it out, but keep searching:
+			peaks[i] = 0;
+			break;
+		}
+
+		// Keep sliding down the slope toward lower frequencies and stop when it turns upwards:
+		last_max = peaks[i]-1;
+		while (last_max >= 1 && (mag[last_max] < max))
+		{
+			max = mag[last_max--];
+		}
+
+		if (last_max <= 1) break;
 	}
 }
+
 
 int fft_min_peak(int peaks[], size_t peak_count, int min_k)
 {
