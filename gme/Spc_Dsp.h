@@ -206,7 +206,7 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			double m = ((log(base_pitch * scale) / log(2)) * 12) + melodic_transpose;
+			double m = ((log(base_pitch * scale) / log(2)) * 12) - 36 + melodic_transpose;
 
 			return m;
 		}
