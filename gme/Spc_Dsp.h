@@ -187,6 +187,7 @@ public:
 		int percussion_note; // MIDI percussion note on channel 10
 
 		double base_pitch;
+		double gain;
 
 		int midi_channel(int voice) {
 			if (percussion_note > 0) {
@@ -254,6 +255,17 @@ public:
 
 			decode_sample(m.regs[r_dir], sample, buf, buf_size, &loop_pos);
 
+			// Calculate cheap peak gain to normalize samples against one another for MIDI conversion:
+			int max = 0;
+			for (int i = 0; i < buf_size; i++) {
+				int sp = abs(buf[i]);
+				if (max < sp) {
+					max = sp;
+				}
+			}
+
+			spl.gain = 32768.0 / (double)max;
+
 			char fname[14];
 			sprintf(fname, "sample%02X.wav", sample);
 			write_wave_file(fname, buf, buf_size, 32000);
@@ -317,7 +329,7 @@ public:
 			}
 
 			spl.used = true;
-			printf("sample %02X hz = %9.5f, loop start at %ld\n", sample, spl.base_pitch, loop_pos);
+			printf("sample %02X, f = %9.5f, gain = %9.5f, loop start at %ld\n", sample, spl.base_pitch, spl.gain, loop_pos);
 
 			free(buf);
 		}
@@ -363,7 +375,7 @@ public:
 			midi_channel[ch].pan = pan;
 		}
 
-		int vel = (v0 + v1) >> 1;
+		int vel = (int)(spl.gain * ((v0 + v1) >> 1));
 
 		midi[voice].write_3(
 			tick,
