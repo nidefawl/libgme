@@ -264,7 +264,7 @@ public:
 				}
 			}
 
-			spl.gain = 32768.0 / (double)max;
+			spl.gain = (double)max / 32768.0;
 
 			char fname[14];
 			sprintf(fname, "sample%02X.wav", sample);
@@ -280,12 +280,14 @@ public:
 
 				fft(real, imag, n);
 
+				// Find first highest peak frequency bin:
 				double maxv = 0;
 				int k = 1;
 				for (int i = 1; i < n/2; i++)
 				{
 					int j = i;
-					double mag = (real[j] * real[j] + imag[j] * imag[j]);
+					double mag = sqrt(real[j] * real[j] + imag[j] * imag[j]);
+					//printf("  [%3d] %9.5f\n", i, mag);
 					if (mag > maxv)
 					{
 						maxv = mag;
@@ -329,13 +331,13 @@ public:
 			}
 
 			spl.used = true;
-			printf("sample %02X, f = %9.5f, gain = %9.5f, loop start at %ld\n", sample, spl.base_pitch, spl.gain, loop_pos);
+			printf("sample %02X, f = %9.3f, gain = %9.8f, loop start at %ld\n", sample, spl.base_pitch, spl.gain, loop_pos);
 
 			free(buf);
 		}
 
 		// Get MIDI note:
-		double m = midi_note(voice);
+		int m = (int)round(midi_note(voice));
 
 		if (voice_midi[voice].sample != sample)
 		{
@@ -380,10 +382,10 @@ public:
 		midi[voice].write_3(
 			tick,
 			0x90 | ch,
-			(int)m,
+			m,
 			vel
 		);
-		midi_channel[ch].note = (int)m;
+		midi_channel[ch].note = m;
 	}
 
 	void note_off(voice_t *v) {
