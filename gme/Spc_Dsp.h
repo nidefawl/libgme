@@ -278,15 +278,42 @@ public:
 					imag[i] = 0;
 				}
 
+				// Take FFT:
 				fft(real, imag, n);
 
+				// Take abs magnitude of FFT result:
+				fft_mag(real, imag, n);
+
+				const int peak_count = 4;
+				int peaks[peak_count];
+				fft_peaks(real, n, peaks, peak_count);
+
+				int k = fft_min_peak(peaks, peak_count, 4);
+
+				printf(
+					"  %9.3f of [%9.3f %9.3f %9.3f %9.3f]\n",
+					k * 32000.0 / (double)n,
+					peaks[0] * 32000.0 / (double)n,
+					peaks[1] * 32000.0 / (double)n,
+					peaks[2] * 32000.0 / (double)n,
+					peaks[3] * 32000.0 / (double)n
+				);
+
+			#if 0
+				for (int i = 1; i < n/2; i++)
+				{
+					printf("  [%3d] %9.5f\n", i, real[i]);
+				}
+			#endif
+
+			#if 0
 				// Find first highest peak frequency bin:
 				double maxv = 0;
 				int k = 1;
 				for (int i = 1; i < n/2; i++)
 				{
 					int j = i;
-					double mag = sqrt(real[j] * real[j] + imag[j] * imag[j]);
+					double mag = real[j];
 					//printf("  [%3d] %9.5f\n", i, mag);
 					if (mag > maxv)
 					{
@@ -294,11 +321,12 @@ public:
 						k = i;
 					}
 				}
+			#endif
 
 				// Interpolate FFT bins to find more exact frequency:
-				double y1 = sqrt(real[k-1] * real[k-1] + imag[k-1] * imag[k-1]);
-				double y2 = sqrt(real[k]   * real[k]   + imag[k]   * imag[k]);
-				double y3 = sqrt(real[k+1] * real[k+1] + imag[k+1] * imag[k+1]);
+				double y1 = real[k-1];
+				double y2 = real[k];
+				double y3 = real[k+1];
 				double kp;
 				if (y1 > y3) {
 					if (y1 > 0) {

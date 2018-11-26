@@ -567,6 +567,57 @@ cleanup:
 	return status;
 }
 
+void fft_mag(double real[], double imag[], size_t n)
+{
+	for (size_t i = 1; i < n/2; i++)
+	{
+		real[i] = sqrt(real[i] * real[i] + imag[i] * imag[i]);
+	}
+}
+
+void fft_peaks(double mag[], size_t n, int peaks[], size_t peak_count)
+{
+	for (int i = 0; i < peak_count; i++)
+	{
+		double max = 0;
+		peaks[i] = 1;
+		for (int j = 1; j < n/2; j++)
+		{
+			if (mag[j] <= max) continue;
+
+			// Already found this peak?
+			bool hit = false;
+			for (int m = 0; m < i; m++)
+			{
+				if (j >= peaks[m]-1 && j <= peaks[m]+1)
+				{
+					hit = true;
+					break;
+				}
+			}
+
+			// Skip it:
+			if (hit) continue;
+
+			max = mag[j];
+			peaks[i] = j;
+		}
+	}
+}
+
+int fft_min_peak(int peaks[], size_t peak_count, int min_k)
+{
+	int minj = 65535;
+	for (int i = 0; i < peak_count; i++)
+	{
+		if (peaks[i] < minj && peaks[i] >= min_k)
+		{
+			minj = peaks[i];
+		}
+	}
+	return minj;
+}
+
 void write_wave_file(const char *fname, const short *buf, size_t buf_size, unsigned short sample_rate)
 {
 	FILE *fs = fopen(fname, "wb");

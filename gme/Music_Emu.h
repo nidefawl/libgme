@@ -23,6 +23,9 @@ struct MidiTrack {
 };
 
 bool fft(double real[], double imag[], size_t n);
+void fft_mag(double real[], double imag[], size_t n);
+void fft_peaks(double mag[], size_t n, int peaks[], size_t peak_count);
+int fft_min_peak(int peaks[], size_t peak_count, int min_k);
 
 void write_wave_file(const char *fname, const short *buf, size_t buf_size, unsigned short sample_rate);
 
