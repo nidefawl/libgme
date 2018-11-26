@@ -420,7 +420,6 @@ unsigned char *MidiTrack::ensure(size_t n) {
 		new_size *= 2;
 	}
 	if (new_size > mtrk.size()) {
-		printf("resize %ld\n", new_size);
 		blargg_err_t err = mtrk.resize(new_size);
 		if (err != 0) {
 			fprintf(stderr, "%s\n", err);

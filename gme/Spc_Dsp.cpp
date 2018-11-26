@@ -755,7 +755,6 @@ void Spc_Dsp::mute_voices( int mask )
 
 void Spc_Dsp::init( void* ram_64k )
 {
-	printf("dsp::init\n");
 	m.ram = (uint8_t*) ram_64k;
 	mute_voices( 0 );
 	disable_surround( false );

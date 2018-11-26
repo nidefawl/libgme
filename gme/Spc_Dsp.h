@@ -249,6 +249,8 @@ public:
 			double real[n];
 			double imag[n];
 
+			printf("%02X sample:\n", sample);
+
 			for (int i = 0; i < buf_size + brr_buf_size; i++) {
 				buf[i] = 0;
 			}
@@ -300,19 +302,23 @@ public:
 			}
 		#endif
 
-			const int peak_count = 4;
+			const int peak_count = 8;
 			int peaks[peak_count];
 			fft_peaks(real, n, peaks, peak_count);
 
 			int k = fft_min_peak(peaks, peak_count, 4);
 
 			printf(
-				"  %4d of [%4d, %4d, %4d, %4d]\n",
+				"  min peak is FFT bin #%4d of possible peaks [%4d, %4d, %4d, %4d, %4d, %4d, %4d, %4d]\n",
 				k,
 				peaks[0],
 				peaks[1],
 				peaks[2],
-				peaks[3]
+				peaks[3],
+				peaks[4],
+				peaks[5],
+				peaks[6],
+				peaks[7]
 			);
 
 			// Interpolate FFT bins to find more exact frequency:
@@ -340,8 +346,36 @@ public:
 
 			spl.base_pitch = kp * 32000.0 / (double)n;
 
+			const char note_names[12][3] = {
+				"A ",
+				"A#",
+				"B ",
+				"C ",
+				"C#",
+				"D ",
+				"D#",
+				"E ",
+				"F ",
+				"F#",
+				"G ",
+				"G#"
+			};
+
+			int x = (int)round((log(spl.base_pitch / 55.0) / log(2)) * 12);
+			const char *note_name = note_names[x % 12];
+			int note_oct = (x / 12) + 1;
+
 			spl.used = true;
-			printf("sample %02X, f = %9.3f, gain = %9.8f, loop start at %ld\n", sample, spl.base_pitch, spl.gain, loop_pos);
+			char loopmsg[15 + 5 + 1];
+			if (loop_pos < 16384)
+			{
+				sprintf(loopmsg, "loop starts at %5ld", loop_pos);
+			}
+			else
+			{
+				sprintf(loopmsg, "no looping");
+			}
+			printf("  f = %9.3f (%s%1d), gain = %9.8f, %s\n", spl.base_pitch, note_name, note_oct, spl.gain, loopmsg);
 
 			free(buf);
 		}
