@@ -14,3 +14,4 @@ install_manifest.txt
 .DS_Store
 demo/demo
 nsf2midi/nsf2midi
+*.spc
