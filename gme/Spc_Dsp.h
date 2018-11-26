@@ -236,6 +236,7 @@ public:
 		int voice = v - m.voices;
 		midi_tick_t tick = abs_tick();
 
+		int directory = m.regs[r_dir];
 		int sample = voice_sample(voice);
 		sample_midi_config &spl = sample_midi[sample];
 
@@ -249,13 +250,13 @@ public:
 			double real[n];
 			double imag[n];
 
-			printf("%02X sample:\n", sample);
+			printf("%02X:%02X sample:\n", directory, sample);
 
 			for (int i = 0; i < buf_size + brr_buf_size; i++) {
 				buf[i] = 0;
 			}
 
-			decode_sample(m.regs[r_dir], sample, buf, buf_size, &loop_pos);
+			decode_sample(directory, sample, buf, buf_size, &loop_pos);
 
 			// Calculate cheap peak gain to normalize samples against one another for MIDI conversion:
 			int max = 0;
