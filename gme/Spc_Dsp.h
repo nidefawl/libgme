@@ -270,93 +270,75 @@ public:
 			sprintf(fname, "sample%02X.wav", sample);
 			write_wave_file(fname, buf, buf_size, 32000);
 
+			// Determine base frequency of sample using FFT over buf:
 			if (loop_pos+n < buf_size) {
-				// Determine base frequency of sample using FFT over buf:
+				// Take last N samples, assuming it's all looped:
 				for (int i = 0; i < n; i++)
 				{
 					real[i] = buf[16384-n+i] / 32768.0;
 					imag[i] = 0;
 				}
-
-				// Take FFT:
-				fft(real, imag, n);
-
-				// Take abs magnitude of FFT result:
-				fft_mag(real, imag, n);
-
-			#if 0
-				for (int i = 1; i < n/2; i++)
-				{
-					printf("  [%3d] %9.5f\n", i, real[i]);
-				}
-			#endif
-
-				const int peak_count = 4;
-				int peaks[peak_count];
-				fft_peaks(real, n, peaks, peak_count);
-
-				int k = fft_min_peak(peaks, peak_count, 4);
-
-				printf(
-					"  %4d of [%4d, %4d, %4d, %4d]\n",
-					k,
-					peaks[0],
-					peaks[1],
-					peaks[2],
-					peaks[3]
-				);
-
-			#if 0
-				// Find first highest peak frequency bin:
-				double maxv = 0;
-				int k = 1;
-				for (int i = 1; i < n/2; i++)
-				{
-					int j = i;
-					double mag = real[j];
-					//printf("  [%3d] %9.5f\n", i, mag);
-					if (mag > maxv)
-					{
-						maxv = mag;
-						k = i;
-					}
-				}
-			#endif
-
-				// Interpolate FFT bins to find more exact frequency:
-				double y1 = real[k-1];
-				double y2 = real[k];
-				double y3 = real[k+1];
-				double kp;
-				if (y1 > y3) {
-					if (y1 > 0) {
-						double a = y2 / y1;
-						double d = a / (1 + a);
-						kp = k - 1 + d;
-					} else {
-						kp = k;
-					}
-				} else {
-					if (y2 > 0) {
-						double a = y3 / y2;
-						double d = a / (1 + a);
-						kp = k + d;
-					} else {
-						kp = k;
-					}
-				}
-
-				spl.base_pitch = kp * 32000.0 / (double)n;
 			} else {
-				spl.base_pitch = 0;
-				// TODO: do more to try to somehow detect what kind of percussion sample this
-				// is since it does not loop (assuming looping indicates melodic)
-				if (spl.percussion_note == 0) {
-					spl.percussion_note = 38;
-					spl.melodic_transpose = 0;
-					spl.melodic_patch = 0;
+				// Just take first N samples:
+				for (int i = 0; i < n; i++)
+				{
+					real[i] = buf[i] / 32768.0;
+					imag[i] = 0;
 				}
 			}
+
+			// Take FFT:
+			fft(real, imag, n);
+
+			// Take abs magnitude of FFT result:
+			fft_mag(real, imag, n);
+
+		#if 0
+			for (int i = 1; i < n/2; i++)
+			{
+				printf("  [%3d] %9.5f\n", i, real[i]);
+			}
+		#endif
+
+			const int peak_count = 4;
+			int peaks[peak_count];
+			fft_peaks(real, n, peaks, peak_count);
+
+			int k = fft_min_peak(peaks, peak_count, 4);
+
+			printf(
+				"  %4d of [%4d, %4d, %4d, %4d]\n",
+				k,
+				peaks[0],
+				peaks[1],
+				peaks[2],
+				peaks[3]
+			);
+
+			// Interpolate FFT bins to find more exact frequency:
+			double y1 = real[k-1];
+			double y2 = real[k];
+			double y3 = real[k+1];
+			double kp;
+			if (y1 > y3) {
+				if (y1 > 0) {
+					double a = y2 / y1;
+					double d = a / (1 + a);
+					kp = k - 1 + d;
+				} else {
+					kp = k;
+				}
+			} else {
+				if (y2 > 0) {
+					double a = y3 / y2;
+					double d = a / (1 + a);
+					kp = k + d;
+				} else {
+					kp = k;
+				}
+			}
+
+			spl.base_pitch = kp * 32000.0 / (double)n;
 
 			spl.used = true;
 			printf("sample %02X, f = %9.3f, gain = %9.8f, loop start at %ld\n", sample, spl.base_pitch, spl.gain, loop_pos);
