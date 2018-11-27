@@ -352,8 +352,6 @@ void Spc_Dsp::run( int clock_count )
 					v->env_mode = env_release;
 				}
 
-				note_pitch(v, pitch);
-
 				// KON
 				if ( m.kon & vbit )
 				{
@@ -469,7 +467,9 @@ void Spc_Dsp::run( int clock_count )
 				if ( interp_pos > 0x7FFF )
 					interp_pos = 0x7FFF;
 				v->interp_pos = interp_pos;
-				
+
+				note_pitch(v, pitch);
+
 				// BRR decode if necessary
 				if ( old_pos >= 0x4000 )
 				{
