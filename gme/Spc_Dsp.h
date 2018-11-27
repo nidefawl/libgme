@@ -210,7 +210,8 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			double m = ((log(base_pitch * scale) / log(2.0)) * 12.0) - 36 + melodic_transpose;
+			// 39.8631371386 = 12.0 / log(2)
+			double m = (log2(base_pitch * scale) * 12.0) - 36.25 + melodic_transpose;
 
 			return m;
 		}
@@ -352,7 +353,7 @@ public:
 
 			double approx_fundamental_pitch = kp * 32000.0 / (double)n;
 			// Round to nearest tone in A=440Hz scale:
-			double nearest_note = round((log(approx_fundamental_pitch / 55.0) / log(2.0)) * 12.0);
+			double nearest_note = round(log2(approx_fundamental_pitch / 55.0) * 12.0);
 			double nearest_pitch = pow(2, nearest_note / 12.0) * 55.0;
 			spl.base_pitch = approx_fundamental_pitch;
 
