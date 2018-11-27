@@ -210,7 +210,7 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			double m = ((log(base_pitch * scale) / log(2.0)) * 12.0) - 36 + melodic_transpose;
+			double m = ((log(base_pitch * scale) / log(2.0)) * 12.0) - 36 + 0.07 + melodic_transpose;
 
 			return m;
 		}
@@ -352,7 +352,7 @@ public:
 
 			double approx_fundamental_pitch = kp * 32000.0 / (double)n;
 			// Round to nearest tone in A=440Hz scale:
-			double nearest_note = round((log(approx_fundamental_pitch / 55.0) / log(2)) * 12);
+			double nearest_note = round((log(approx_fundamental_pitch / 55.0) / log(2.0)) * 12.0);
 			double nearest_pitch = pow(2, nearest_note / 12.0) * 55.0;
 			spl.base_pitch = nearest_pitch;
 
@@ -448,20 +448,6 @@ public:
 		int note = (int)round(n);
 		vm.pitch = voice_pitch(voice);
 
-#if 0
-		short wheel = 0x2000 + (short)((n - note) * 0xFFF);
-		if (wheel != midi_channel[ch].wheel)
-		{
-			midi[voice].write_3(
-				tick,
-				0xE0 | ch,
-				wheel & 0x7F,
-				(wheel >> 7) & 0x7F
-			);
-			midi_channel[ch].wheel = wheel;
-		}
-#endif
-		
 		// note on:
 		midi[voice].write_3(
 			tick,
@@ -518,13 +504,22 @@ public:
 		int voice = v - m.voices;
 		voice_midi_state &vm = voice_midi[voice];
 		int ch = vm.midi_channel;
+
 		if (ch == 9) return;
 		if (midi_channel[ch].note == 0) return;
 		if (vm.pitch == pitch) return;
 
+		double n = sample_midi[vm.sample].midi_note(pitch);
+
+		// NOTE: there is a write-tearing problem where DSP runs between writes to PITCHL and PITCHH
+		// so hiccups occur with pitch.
+
+		// if (vm.sample == 0x17) {
+		// 	printf("17: %04X -> %04X (%6.5f)\n", vm.pitch, pitch, n - midi_channel[ch].note);
+		// }
+
 		vm.pitch = pitch;
 
-		double n = sample_midi[vm.sample].midi_note(pitch);
 		// Out of bend range:
 		if (fabs(n - midi_channel[ch].note) > 2.0) return;
 
@@ -618,6 +613,8 @@ inline void Spc_Dsp::disable_surround( bool disable )
 
 #define SPC_NO_COPY_STATE_FUNCS 1
 
-#define SPC_LESS_ACCURATE 1
+#define SPC_LESS_ACCURATE 0
+
+#define SPC_MORE_ACCURACY 1
 
 #endif
