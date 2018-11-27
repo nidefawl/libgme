@@ -277,6 +277,7 @@ void Spc_Dsp::run( int clock_count )
 				VREG(v_regs,envx) = (uint8_t) (env >> 4);
 				if ( env )
 				{
+					int apenv = env;
 					// Make pointers into gaussian based on fractional position between samples
 					int offset = (unsigned) v->interp_pos >> 3 & 0x1FE;
 					short const* fwd = interleved_gauss       + offset;
@@ -291,7 +292,7 @@ void Spc_Dsp::run( int clock_count )
 						          fwd [1] * in [1] +
 						          rev [1] * in [2] +
 						          rev [0] * in [3]) >> 11;
-						output = (output * env) >> 11;
+						output = (output * apenv) >> 11;
 					}
 					else
 					{
@@ -307,7 +308,7 @@ void Spc_Dsp::run( int clock_count )
 							CLAMP16( output );
 							output &= ~1;
 						}
-						output = (output * env) >> 11 & ~1;
+						output = (output * apenv) >> 11 & ~1;
 					}
 					
 					// Output

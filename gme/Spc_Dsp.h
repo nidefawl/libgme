@@ -404,8 +404,8 @@ public:
 			}
 		}
 
-		int8_t v0 = GET_LE16( &m.regs[voice * 0x10 + v_voll] ) << 1;
-		int8_t v1 = GET_LE16( &m.regs[voice * 0x10 + v_volr] ) << 1;
+		int8_t v0 = (int8_t) ( m.regs[voice * 0x10 + v_voll] );
+		int8_t v1 = (int8_t) ( m.regs[voice * 0x10 + v_volr] );
 
 #define CLAMP7(x) { \
 			if (x < 0) x = 0; \
@@ -414,12 +414,19 @@ public:
 
 		int pan = 64 - (abs(v0)) + (abs(v1));
 		CLAMP7(pan)
-		int vel = (int)((abs(v0) + abs(v1)));
+		int vel = (int)round(log(abs(v0) + abs(v1)) / log(2) * 17);
 		CLAMP7(vel)
 
 		// printf("%3d %3d\n", v0, v1);
 		if (ch != 9)
 		{
+			// if (pan != midi_channel[ch].pan || vel != midi_channel[ch].volume)
+			// {
+			// 	char msg[16];
+			// 	sprintf(msg, "v0=%02X,v1=%02X", v0, v1);
+			// 	midi[voice].write_meta(tick, 0x01, strlen(msg), msg);
+			// }
+
 			if (pan != midi_channel[ch].pan)
 			{
 				midi[voice].write_3(
@@ -468,13 +475,20 @@ public:
 
 		midi_tick_t tick = abs_tick();
 
-		int8_t v0 = GET_LE16( &m.regs[voice * 0x10 + v_voll] ) << 1;
-		int8_t v1 = GET_LE16( &m.regs[voice * 0x10 + v_volr] ) << 1;
+		int8_t v0 = (int8_t) ( m.regs[voice * 0x10 + v_voll] );
+		int8_t v1 = (int8_t) ( m.regs[voice * 0x10 + v_volr] );
 
 		int pan = 64 - (abs(v0)) + (abs(v1));
 		CLAMP7(pan)
-		int vel = (int)((abs(v0) + abs(v1)));
+		int vel = (int)round(log(abs(v0) + abs(v1)) / log(2) * 17);
 		CLAMP7(vel)
+
+		// if (pan != midi_channel[ch].pan || vel != midi_channel[ch].volume)
+		// {
+		// 	char msg[16];
+		// 	sprintf(msg, "v0=%02X,v1=%02X", v0, v1);
+		// 	midi[voice].write_meta(tick, 0x01, strlen(msg), msg);
+		// }
 
 		if (pan != midi_channel[ch].pan)
 		{
