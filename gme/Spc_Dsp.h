@@ -210,7 +210,7 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			double m = ((log(base_pitch * scale) / log(2.0)) * 12.0) - 36 + 0.07 + melodic_transpose;
+			double m = ((log(base_pitch * scale) / log(2.0)) * 12.0) - 36 + melodic_transpose;
 
 			return m;
 		}
@@ -354,7 +354,7 @@ public:
 			// Round to nearest tone in A=440Hz scale:
 			double nearest_note = round((log(approx_fundamental_pitch / 55.0) / log(2.0)) * 12.0);
 			double nearest_pitch = pow(2, nearest_note / 12.0) * 55.0;
-			spl.base_pitch = nearest_pitch;
+			spl.base_pitch = approx_fundamental_pitch;
 
 			const char note_names[12][3] = {
 				"A ", "A#", "B ", "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#"
@@ -374,7 +374,7 @@ public:
 			{
 				sprintf(loopmsg, "no looping");
 			}
-			printf("  f = %9.3f (%s%1d), gain = %9.8f, %s\n", spl.base_pitch, note_name, note_oct, spl.gain, loopmsg);
+			printf("  f = %9.3f ~ %9.3f (%s%1d), gain = %7.6f, %s\n", spl.base_pitch, nearest_pitch, note_name, note_oct, spl.gain, loopmsg);
 
 			free(buf);
 		}
