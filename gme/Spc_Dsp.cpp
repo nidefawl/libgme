@@ -323,9 +323,8 @@ void Spc_Dsp::run( int clock_count )
 						echo_out_r += r;
 					}
 
-					note_pitch(v, pitch);
 				}
-				
+
 				pmon_input = output;
 				VREG(v_regs,outx) = (uint8_t) (output >> 8);
 			}
@@ -352,7 +351,9 @@ void Spc_Dsp::run( int clock_count )
 					}
 					v->env_mode = env_release;
 				}
-				
+
+				note_pitch(v, pitch);
+
 				// KON
 				if ( m.kon & vbit )
 				{

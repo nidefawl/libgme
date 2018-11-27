@@ -172,8 +172,9 @@ public:
 	voice_midi_state voice_midi[voice_count];
 
 	struct midi_channel_state {
-		int note;
 		int patch;
+		int note;
+		int wheel;
 
 		int pan;
 		int volume;
@@ -209,7 +210,7 @@ public:
 			}
 
 			double scale = pitch / (double)0x1000;
-			double m = ((log(base_pitch * scale) / log(2)) * 12) - 36 + melodic_transpose;
+			double m = ((log(base_pitch * scale) / log(2.0)) * 12.0) - 36.4 + melodic_transpose;
 
 			return m;
 		}
@@ -385,10 +386,6 @@ public:
 			free(buf);
 		}
 
-		// Get MIDI note:
-		int note = (int)round(midi_note(voice));
-		vm.pitch = voice_pitch(voice);
-
 		int ch = vm.midi_channel;
 
 		if (vm.sample != sample)
@@ -453,6 +450,25 @@ public:
 			}
 		}
 
+		// Get MIDI note:
+		double n = midi_note(voice);
+		int note = (int)round(n);
+		vm.pitch = voice_pitch(voice);
+
+#if 0
+		short wheel = 0x2000 + (short)((n - note) * 0xFFF);
+		if (wheel != midi_channel[ch].wheel)
+		{
+			midi[voice].write_3(
+				tick,
+				0xE0 | ch,
+				wheel & 0x7F,
+				(wheel >> 7) & 0x7F
+			);
+			midi_channel[ch].wheel = wheel;
+		}
+#endif
+		
 		// note on:
 		midi[voice].write_3(
 			tick,
@@ -472,9 +488,6 @@ public:
 		if (midi_channel[ch].note == 0) return;
 
 		midi_tick_t tick = abs_tick();
-
-		int sample = voice_sample(voice);
-		sample_midi_config &spl = sample_midi[sample];
 
 		int8_t v0 = GET_LE16( &m.regs[voice * 0x10 + v_voll] ) << 1;
 		int8_t v1 = GET_LE16( &m.regs[voice * 0x10 + v_volr] ) << 1;
@@ -512,13 +525,29 @@ public:
 		int voice = v - m.voices;
 		voice_midi_state &vm = voice_midi[voice];
 		int ch = vm.midi_channel;
+		if (ch == 9) return;
 		if (midi_channel[ch].note == 0) return;
 		if (vm.pitch == pitch) return;
 
+		vm.pitch = pitch;
+
+		double n = sample_midi[vm.sample].midi_note(pitch);
+		// Out of bend range:
+		if (fabs(n - midi_channel[ch].note) > 2.0) return;
+
 		midi_tick_t tick = abs_tick();
 
-		// printf("%d pitch=%04X\n", voice, pitch);
-		vm.pitch = pitch;
+		short wheel = 0x2000 + (short)((n - midi_channel[ch].note) * 0xFFF);
+		if (wheel != midi_channel[ch].wheel)
+		{
+			midi[voice].write_3(
+				tick,
+				0xE0 | ch,
+				wheel & 0x7F,
+				(wheel >> 7) & 0x7F
+			);
+			midi_channel[ch].wheel = wheel;
+		}
 	}
 
 	void note_off(voice_t *v)
