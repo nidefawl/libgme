@@ -386,7 +386,7 @@ public:
 		}
 
 		// Get MIDI note:
-		int m = (int)round(midi_note(voice));
+		int note = (int)round(midi_note(voice));
 		vm.pitch = voice_pitch(voice);
 
 		int ch = vm.midi_channel;
@@ -414,10 +414,76 @@ public:
 			}
 		}
 
-		int v0 = v->volume[0] * 3;
-		int v1 = v->volume[1] * 3;
+		int8_t v0 = GET_LE16( &m.regs[voice * 0x10 + v_voll] ) << 1;
+		int8_t v1 = GET_LE16( &m.regs[voice * 0x10 + v_volr] ) << 1;
 
-		int pan = 64 - (v0 >> 1) + (v1 >> 1);
+#define CLAMP7(x) { \
+			if (x < 0) x = 0; \
+			else if (x > 127) x = 127; \
+		}
+
+		int pan = 64 - (abs(v0)) + (abs(v1));
+		CLAMP7(pan)
+		int vel = (int)((abs(v0) + abs(v1)));
+		CLAMP7(vel)
+
+		// printf("%3d %3d\n", v0, v1);
+		if (ch != 9)
+		{
+			if (pan != midi_channel[ch].pan)
+			{
+				midi[voice].write_3(
+					tick,
+					0xB0 | ch,
+					10, // Pan
+					pan
+				);
+				midi_channel[ch].pan = pan;
+			}
+
+			if (vel != midi_channel[ch].volume)
+			{
+				midi[voice].write_3(
+					tick,
+					0xB0 | ch,
+					0x07,	// Master volume
+					vel
+				);
+				midi_channel[ch].volume = vel;
+			}
+		}
+
+		// note on:
+		midi[voice].write_3(
+			tick,
+			0x90 | ch,
+			note,
+			(ch == 9) ? vel : 0x70
+		);
+		midi_channel[ch].note = note;
+	}
+
+	void note_volume(voice_t *v)
+	{
+		int voice = v - m.voices;
+		voice_midi_state &vm = voice_midi[voice];
+		int ch = vm.midi_channel;
+		if (ch == 9) return;
+		if (midi_channel[ch].note == 0) return;
+
+		midi_tick_t tick = abs_tick();
+
+		int sample = voice_sample(voice);
+		sample_midi_config &spl = sample_midi[sample];
+
+		int8_t v0 = GET_LE16( &m.regs[voice * 0x10 + v_voll] ) << 1;
+		int8_t v1 = GET_LE16( &m.regs[voice * 0x10 + v_volr] ) << 1;
+
+		int pan = 64 - (abs(v0)) + (abs(v1));
+		CLAMP7(pan)
+		int vel = (int)((abs(v0) + abs(v1)));
+		CLAMP7(vel)
+
 		if (pan != midi_channel[ch].pan)
 		{
 			midi[voice].write_3(
@@ -429,33 +495,16 @@ public:
 			midi_channel[ch].pan = pan;
 		}
 
-		int vel = (int)(spl.gain * ((v0 + v1) >> 1));
-
-		midi[voice].write_3(
-			tick,
-			0x90 | ch,
-			m,
-			vel
-		);
-		midi_channel[ch].note = m;
-	}
-
-	void note_gain(voice_t *v, int env)
-	{
-		int voice = v - m.voices;
-		voice_midi_state &vm = voice_midi[voice];
-		int ch = vm.midi_channel;
-		if (midi_channel[ch].note == 0) return;
-		if (vm.gain == env) return;
-
-		midi_tick_t tick = abs_tick();
-
-		int directory = m.regs[r_dir];
-		int sample = voice_sample(voice);
-		sample_midi_config &spl = sample_midi[sample];
-
-		// printf("%d gain=%02X\n", voice, env);
-		vm.gain = env;
+		if (vel != midi_channel[ch].volume)
+		{
+			midi[voice].write_3(
+				tick,
+				0xB0 | ch,
+				0x07,	// Master volume
+				vel
+			);
+			midi_channel[ch].volume = vel;
+		}
 	}
 
 	void note_pitch(voice_t *v, int pitch)
@@ -467,10 +516,6 @@ public:
 		if (vm.pitch == pitch) return;
 
 		midi_tick_t tick = abs_tick();
-
-		int directory = m.regs[r_dir];
-		int sample = voice_sample(voice);
-		sample_midi_config &spl = sample_midi[sample];
 
 		// printf("%d pitch=%04X\n", voice, pitch);
 		vm.pitch = pitch;
@@ -520,6 +565,8 @@ inline void Spc_Dsp::update_voice_vol( int addr )
 	int enabled = v.enabled;
 	v.volume [0] = l & enabled;
 	v.volume [1] = r & enabled;
+
+	note_volume(&v);
 }
 
 inline void Spc_Dsp::write( int addr, int data )

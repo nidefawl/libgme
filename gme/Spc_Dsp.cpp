@@ -437,7 +437,6 @@ void Spc_Dsp::run( int clock_count )
 									env += 0x8 - 0x20; // 7: two-slope linear increase
 							}
 						}
-						note_gain(v, env);
 					}
 					
 					// Sustain level
@@ -451,7 +450,9 @@ void Spc_Dsp::run( int clock_count )
 					{
 						env = (env < 0 ? 0 : 0x7FF);
 						if ( v->env_mode == env_attack )
+						{
 							v->env_mode = env_decay;
+						}
 					}
 					
 					if ( !READ_COUNTER( rate ) )
