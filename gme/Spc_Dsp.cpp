@@ -322,6 +322,8 @@ void Spc_Dsp::run( int clock_count )
 						echo_out_l += l;
 						echo_out_r += r;
 					}
+
+					note_pitch(v, pitch);
 				}
 				
 				pmon_input = output;
@@ -435,6 +437,7 @@ void Spc_Dsp::run( int clock_count )
 									env += 0x8 - 0x20; // 7: two-slope linear increase
 							}
 						}
+						note_gain(v, env);
 					}
 					
 					// Sustain level

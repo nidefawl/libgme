@@ -164,6 +164,8 @@ public:
 
 	struct voice_midi_state {
 		int sample;
+		int pitch;
+		int gain;
 
 		int midi_channel;
 	};
@@ -231,10 +233,12 @@ public:
 
 	void decode_sample(int dir, int sample, short *buf, size_t buf_size, size_t *loop_pos);
 
-	void note_on(voice_t *v) {
-		char sample_s[10];
+	void note_on(voice_t *v)
+	{
 		int voice = v - m.voices;
+		voice_midi_state &vm = voice_midi[voice];
 		midi_tick_t tick = abs_tick();
+		char sample_s[10];
 
 		int directory = m.regs[r_dir];
 		int sample = voice_sample(voice);
@@ -383,33 +387,36 @@ public:
 
 		// Get MIDI note:
 		int m = (int)round(midi_note(voice));
+		vm.pitch = voice_pitch(voice);
 
-		if (voice_midi[voice].sample != sample)
+		int ch = vm.midi_channel;
+
+		if (vm.sample != sample)
 		{
-			int spl_midi_channel = spl.midi_channel(voice);
+			ch = spl.midi_channel(voice);
 
 			// Write a text event describing sample number:
 			sprintf(sample_s, "sample %02X", sample);
 			midi[voice].write_meta(tick, 0x01, strlen(sample_s), sample_s);
-			voice_midi[voice].sample = sample;
-			voice_midi[voice].midi_channel = spl_midi_channel;
+			vm.sample = sample;
+			vm.midi_channel = ch;
 
 			// Write a patch change:
 			int new_patch = spl.midi_patch();
-			midi[voice].write_2(
-				tick,
-				0xC0 | spl_midi_channel,
-				new_patch
-			);
-			midi_channel[spl_midi_channel].patch = new_patch;
+			if (midi_channel[ch].patch != new_patch)
+			{
+				midi[voice].write_2(
+					tick,
+					0xC0 | ch,
+					new_patch
+				);
+				midi_channel[ch].patch = new_patch;
+			}
 		}
-
-		int ch = voice_midi[voice].midi_channel;
 
 		int v0 = v->volume[0] * 3;
 		int v1 = v->volume[1] * 3;
 
-		// printf("%3d %3d\n", v0, v1);
 		int pan = 64 - (v0 >> 1) + (v1 >> 1);
 		if (pan != midi_channel[ch].pan)
 		{
@@ -433,16 +440,57 @@ public:
 		midi_channel[ch].note = m;
 	}
 
-	void note_off(voice_t *v) {
+	void note_gain(voice_t *v, int env)
+	{
 		int voice = v - m.voices;
+		voice_midi_state &vm = voice_midi[voice];
+		int ch = vm.midi_channel;
+		if (midi_channel[ch].note == 0) return;
+		if (vm.gain == env) return;
+
+		midi_tick_t tick = abs_tick();
+
+		int directory = m.regs[r_dir];
+		int sample = voice_sample(voice);
+		sample_midi_config &spl = sample_midi[sample];
+
+		// printf("%d gain=%02X\n", voice, env);
+		vm.gain = env;
+	}
+
+	void note_pitch(voice_t *v, int pitch)
+	{
+		int voice = v - m.voices;
+		voice_midi_state &vm = voice_midi[voice];
+		int ch = vm.midi_channel;
+		if (midi_channel[ch].note == 0) return;
+		if (vm.pitch == pitch) return;
+
+		midi_tick_t tick = abs_tick();
+
+		int directory = m.regs[r_dir];
+		int sample = voice_sample(voice);
+		sample_midi_config &spl = sample_midi[sample];
+
+		// printf("%d pitch=%04X\n", voice, pitch);
+		vm.pitch = pitch;
+	}
+
+	void note_off(voice_t *v)
+	{
+		int voice = v - m.voices;
+		voice_midi_state &vm = voice_midi[voice];
+		int ch = vm.midi_channel;
 		midi_tick_t tick = abs_tick();
 
 		midi[voice].write_3(
 			tick,
-			0x80 | voice_midi[voice].midi_channel,
-			midi_channel[voice_midi[voice].midi_channel].note,
+			0x80 | ch,
+			midi_channel[ch].note,
 			0x00
 		);
+		midi_channel[ch].note = 0;
+		vm.pitch = 0;
 	}
 };
 
