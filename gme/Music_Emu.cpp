@@ -624,6 +624,7 @@ int fft_min_peak(int peaks[], size_t peak_count, int min_k)
 			minj = peaks[i];
 		}
 	}
+	if (minj == 65535) return 0;
 	return minj;
 }
 
