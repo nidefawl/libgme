@@ -1,18 +1,21 @@
-dmc 80 96 10 36
-dmc 82 96 10 38
-noise 03 42
-noise 00 51
-noise 01 52
-noise 02 36
-noise 04 44
-noise 05 38
-noise 06 44
-noise 07 42
-noise 08 44
-noise 09 46
-noise 0A 41
-noise 0B 43
-noise 0C 45
-noise 0D 47
-noise 0E 48
-noise 0F 50
+dmc
+  map sample=0x80 period=96 midiChannel=10 midiNote=36
+  map sample=0x82 period=96 midiChannel=10 midiNote=38
+
+noise
+  map period=0x03 midiNote=42
+  map period=0x00 midiNote=51
+  map period=0x01 midiNote=52
+  map period=0x02 midiNote=36
+  map period=0x04 midiNote=44
+  map period=0x05 midiNote=38
+  map period=0x06 midiNote=44
+  map period=0x07 midiNote=42
+  map period=0x08 midiNote=44
+  map period=0x09 midiNote=46
+  map period=0x0A midiNote=41
+  map period=0x0B midiNote=43
+  map period=0x0C midiNote=45
+  map period=0x0D midiNote=47
+  map period=0x0E midiNote=48
+  map period=0x0F midiNote=50

@@ -1,18 +1,19 @@
-noise 00 42
-noise 01 42
-noise 02 36
-noise 03 46
-noise 04 44
-noise 05 38
-noise 06 44
-noise 07 42
-noise 08 44
-noise 09 46
-noise 0A 49
-noise 0B 44
-noise 0C 44
-noise 0D 46
-noise 0E 46
-noise 0F 46
-noise 10 81
-noise 11 80
+noise
+  map period=0x00 midiNote=42
+  map period=0x01 midiNote=42
+  map period=0x02 midiNote=36
+  map period=0x03 midiNote=46
+  map period=0x04 midiNote=44
+  map period=0x05 midiNote=38
+  map period=0x06 midiNote=44
+  map period=0x07 midiNote=42
+  map period=0x08 midiNote=44
+  map period=0x09 midiNote=46
+  map period=0x0A midiNote=49
+  map period=0x0B midiNote=44
+  map period=0x0C midiNote=44
+  map period=0x0D midiNote=46
+  map period=0x0E midiNote=46
+  map period=0x0F midiNote=46
+  map period=0x10 midiNote=81
+  map period=0x11 midiNote=80

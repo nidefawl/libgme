@@ -1,32 +1,11 @@
-noise 00 36
-noise 01 42
-noise 02 38
-noise 03 38
-noise 04 40
-noise 05 41
-noise 06 42
-noise 07 43
-noise 08 44
-noise 09 45
-noise 0A 46
-noise 0B 42
-noise 0C 48
-noise 0D 49
-noise 0E 50
-noise 0F 51
-noise 10 81
-noise 11 80
-noise 12 79
-noise 13 78
-noise 14 77
-noise 15 76
-noise 16 75
-noise 17 74
-noise 18 73
-noise 19 69
-noise 1A 71
-noise 1B 70
-noise 1C 69
-noise 1D 68
-noise 1E 67
-noise 1F 66
+noise
+  map period=10 midiNote=38
+  map period=11 midiNote=38
+  map period=0  midiNote=42
+  map period=4  midiNote=44
+  //map period=4  midiNote=36
+  map period=3  midiNote=36
+  map period=5  disable
+  map period=25 midiNote=38
+
+//events noise=true
