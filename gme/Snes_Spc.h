@@ -147,7 +147,7 @@ public:
 
 	Spc_Dsp& dsp_() { return dsp; }
 private:
-	Spc_Dsp dsp;
+	Spc_Dsp dsp{};
 	
 	#if SPC_LESS_ACCURATE
 		static signed char const reg_times_ [256];

@@ -164,13 +164,12 @@ public:
 	midi_tick_t abs_tick() { return (midi_tick_t)(abs_sample * 3.590664272890485); }
 
 	struct voice_midi_state {
-		int sample;
-		int pitch;
-		int gain;
-
-		int midi_channel;
+		int sample=0;
+		int pitch=0;
+		int gain=0;
+		int midi_channel=0;
 	};
-	voice_midi_state voice_midi[voice_count];
+	voice_midi_state voice_midi[voice_count]{};
 
 	struct midi_channel_state {
 		int patch;
@@ -180,7 +179,7 @@ public:
 		int pan;
 		int volume;
 	};
-	midi_channel_state midi_channel[16];
+	midi_channel_state midi_channel[16]{};
 
 	struct sample_midi_config {
 		bool used;	// whether or not this sample number is actually used in the song
@@ -206,6 +205,8 @@ public:
 			return melodic_patch;
 		}
 		double midi_note(int pitch) {
+			if (pitch == 0)
+				return -INFINITY;
 			if (percussion_note > 0) {
 				return percussion_note;
 			}
@@ -370,7 +371,7 @@ public:
 			char loopmsg[15 + 5 + 1];
 			if (loop_pos < 16384)
 			{
-				sprintf(loopmsg, "loop starts at %5ld", loop_pos);
+				sprintf(loopmsg, "loop starts at %5zu", loop_pos);
 			}
 			else
 			{

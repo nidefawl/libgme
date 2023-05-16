@@ -74,11 +74,11 @@ protected:
 	void set_tempo_( double );
 	void enable_accuracy_( bool );
 private:
-	byte const* file_data;
-	long        file_size;
-	Fir_Resampler<24> resampler;
-	SPC_Filter filter;
-	Snes_Spc apu;
+	byte const* file_data{};
+	long        file_size{};
+	Fir_Resampler<24> resampler{};
+	SPC_Filter filter{};
+	Snes_Spc apu{};
 	
 	blargg_err_t play_and_filter( long count, sample_t out [] );
 };
