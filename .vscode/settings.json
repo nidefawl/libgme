@@ -1,0 +1,5 @@
+{
+    "cmake.configureArgs": [
+        "-DCMAKE_PREFIX_PATH=C:/dev/90_CPP_3RD/SDL/install",
+    ]
+}
