@@ -4,6 +4,7 @@
 
 #include "Snes_Spc.h"
 
+#include <cstdint>
 #include <string.h>
 
 /* Copyright (C) 2004-2007 Shay Green. This module is free software; you
@@ -20,6 +21,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 #include "blargg_source.h"
 
 #define RAM         (m.ram.ram)
+#define OLD_RAM     (m.oldRam.ram)
 #define REGS        (m.smp_regs [0])
 #define REGS_IN     (m.smp_regs [1])
 
@@ -32,7 +34,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 blargg_err_t Snes_Spc::init()
 {
 	memset( &m, 0, sizeof m );
-	dsp.init( RAM );
+	dsp.init( RAM, OLD_RAM );
 	
 	m.tempo = tempo_unit;
 	
@@ -234,12 +236,26 @@ blargg_err_t Snes_Spc::load_spc( void const* data, long size )
 	m.cpu_regs.psw = spc->psw;
 	m.cpu_regs.sp  = spc->sp;
 	
+	
+	static spc_file_t prevSpcFile{};
+	static bool prevDataValid = false;
+
 	// RAM and registers
 	memcpy( RAM, spc->ram, 0x10000 );
+	memcpy( OLD_RAM, spc->ram, 0x10000 );
+	if (prevDataValid) {
+		memcpy( OLD_RAM, prevSpcFile.ram, 0x10000 );
+	}
+
 	ram_loaded();
-	
+
 	// DSP registers
 	dsp.load( spc->dsp );
+	if (prevDataValid) {
+		dsp.load( prevSpcFile.dsp );
+	}
+	memcpy(&prevSpcFile, spc, sizeof(spc_file_t));
+	prevDataValid = true;
 	
 	reset_time_regs();
 	

@@ -18,7 +18,7 @@ public:
 // Setup
 	
 	// Initializes DSP and has it use the 64K RAM provided
-	void init( void* ram_64k );
+	void init( void* ram_64k, void* old_ram_64k );
 
 	// Sets destination for output samples. If out is NULL or out_size is 0,
 	// doesn't generate any.
@@ -141,6 +141,7 @@ private:
 		
 		// non-emulation state
 		uint8_t* ram; // 64K shared RAM between DSP and SMP
+		uint8_t* oldRam; // 64K shared RAM between DSP and SMP
 		int mute_mask;
 		int surround_threshold;
 		sample_t* out;

@@ -193,6 +193,16 @@ private:
 			uint8_t ram      [0x10000];
 			uint8_t padding2 [0x100];
 		} ram;
+		struct
+		{
+			// padding to neutralize address overflow
+			union {
+				uint8_t padding1 [0x100];
+				uint16_t align; // makes compiler align data for 16-bit access
+			} padding1 [1];
+			uint8_t ram      [0x10000];
+			uint8_t padding2 [0x100];
+		} oldRam;
 	};
 	state_t m;
 	

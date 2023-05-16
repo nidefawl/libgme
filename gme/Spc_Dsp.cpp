@@ -192,7 +192,8 @@ void Spc_Dsp::run( int clock_count )
 		return;
 	
 	uint8_t* const ram = m.ram;
-	uint8_t const* const dir = &ram [REG(dir) * 0x100];
+	int ram_addr = REG(dir) * 0x100;
+	uint8_t const* const dir = &m.oldRam [ram_addr];
 	int const slow_gaussian = (REG(pmon) >> 1) | REG(non);
 	int const noise_rate = REG(flg) & 0x1F;
 	
@@ -201,7 +202,8 @@ void Spc_Dsp::run( int clock_count )
 	int mvolr = (int8_t) REG(mvolr);
 	if ( mvoll * mvolr < m.surround_threshold )
 		mvoll = -mvoll; // eliminate surround
-	
+	static int clockForward = 0;
+	clockForward += count;
 	do
 	{
 		// KON/KOFF reading
@@ -232,17 +234,24 @@ void Spc_Dsp::run( int clock_count )
 		voice_t* v = m.voices;
 		uint8_t* v_regs = m.regs;
 		int vbit = 1;
+		int voiceIdx = 0;
 		do
 		{
 			#define SAMPLE_PTR(i) GET_LE16A( &dir [VREG(v_regs,srcn) * 4 + i * 2] )
 			
-			int brr_header = ram [v->brr_addr];
+			int brr_header = m.oldRam [v->brr_addr];
 			int kon_delay = v->kon_delay;
 			
 			// Pitch
 			int pitch = GET_LE16A( &VREG(v_regs,pitchl) ) & 0x3FFF;
+			// m.regs[r_pmon] |= vbit;
 			if ( REG(pmon) & vbit )
 				pitch += ((pmon_input >> 5) * pitch) >> 10;
+			// int pitchOffset = sin(float(clockForward>>12)*(0.9f+0.1f*sin(float((clockForward>>12) + voiceIdx*13))))*0x23f;
+			// int pitchOffset = (0.8f+0.2f*sin(float((m.counters[3]+pitch*32)>>14))*(0.02f*pitch));
+			// pitch += pitchOffset;
+			if (pitch < 0) pitch = 0;
+			if (pitch > 0x3FFF) pitch = 0x3FFF;
 			
 			// KON phases
 			if ( --kon_delay >= 0 )
@@ -475,8 +484,9 @@ void Spc_Dsp::run( int clock_count )
 				if ( old_pos >= 0x4000 )
 				{
 					// Arrange the four input nybbles in 0xABCD order for easy decoding
-					int nybbles = ram [(v->brr_addr + v->brr_offset) & 0xFFFF] * 0x100 +
-							ram [(v->brr_addr + v->brr_offset + 1) & 0xFFFF];
+					int brr_addr_a = (v->brr_addr + v->brr_offset) & 0xFFFF;
+					int brr_addr_b = (v->brr_addr + v->brr_offset + 1) & 0xFFFF;
+					int nybbles = m.oldRam [brr_addr_a] * 0x100 + m.oldRam [brr_addr_b];
 					
 					// Advance read position
 					int const brr_block_size = 9;
@@ -488,7 +498,9 @@ void Spc_Dsp::run( int clock_count )
 						assert( brr_offset == brr_block_size );
 						if ( brr_header & 1 )
 						{
-							brr_addr = SAMPLE_PTR( 1 );
+							// brr_addr = SAMPLE_PTR( 1 );
+							int dir_idx = VREG(v_regs,srcn) * 4 + 1 * 2;
+							brr_addr = GET_LE16A( &dir [dir_idx] );
 							if ( !v->kon_delay )
 								REG(endx) |= vbit;
 						}
@@ -759,9 +771,10 @@ void Spc_Dsp::mute_voices( int mask )
 	}
 }
 
-void Spc_Dsp::init( void* ram_64k )
+void Spc_Dsp::init( void* ram_64k, void* old_ram_64k )
 {
 	m.ram = (uint8_t*) ram_64k;
+	m.oldRam = (uint8_t*) ram_64k;
 	mute_voices( 0 );
 	disable_surround( false );
 	set_output( 0, 0 );
