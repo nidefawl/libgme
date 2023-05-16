@@ -5,10 +5,7 @@ include (CheckCXXCompilerFlag)
 
 set(GME_VERSION 0.6.0 CACHE INTERNAL "libgme Version")
 
-# 2.6+ always assumes FATAL_ERROR, but 2.4 and below don't.
-# Of course, 2.4 might work, in which case you're welcome to drop
-# down the requirement, but I can't test that.
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.21)
 
 # Default emulators to build (all of them! ;)
 if (NOT DEFINED USE_GME_AY)
@@ -87,6 +84,6 @@ set( LIBGME_HAVE_GCC_VISIBILITY ${ENABLE_VISIBILITY} CACHE BOOL "GCC support for
 add_subdirectory(gme)
 
 # EXCLUDE_FROM_ALL adds build rules but keeps it out of default build
-add_subdirectory(player EXCLUDE_FROM_ALL)
-add_subdirectory(demo EXCLUDE_FROM_ALL)
-add_subdirectory(nsf2midi EXCLUDE_FROM_ALL)
+add_subdirectory(player)
+add_subdirectory(demo)
+# add_subdirectory(nsf2midi EXCLUDE_FROM_ALL)

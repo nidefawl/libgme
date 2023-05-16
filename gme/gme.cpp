@@ -256,7 +256,7 @@ BLARGG_EXPORT gme_err_t gme_track_info( Music_Emu const* me, gme_info_t** out, i
 	gme_info_t_* info = BLARGG_NEW gme_info_t_;
 	CHECK_ALLOC( info );
 	
-	gme_err_t err = me->track_info( &info->info, track );
+	gme_err_t err = ((Gme_File*)me)->track_info( &info->info, track );
 	if ( err )
 	{
 		gme_free_info( info );

@@ -10,13 +10,13 @@ public:
 	typedef const char* error_t;
 	
 	// Initialize scope window of specified size. Height must be 256 or less.
-	error_t init( int width, int height );
+	error_t init(int width, int height );
 	
 	// Draw at most 'count' samples from 'in', skipping 'step' samples after
 	// each sample drawn. Step can be less than 1.0.
 	error_t draw( const short* in, long count, double step = 1.0 );
 	
-	Audio_Scope();
+	Audio_Scope(SDL_Surface* surface);
 	~Audio_Scope();
 	
 private:

@@ -80,7 +80,6 @@ public:
 	void ignore_silence( bool disable = true );
 	
 	// Info for current track
-	Gme_File::track_info;
 	blargg_err_t track_info( track_info_t* out ) const;
 	
 // Sound customization
@@ -218,7 +217,7 @@ struct Gme_Info_ : Music_Emu
 
 inline blargg_err_t Music_Emu::track_info( track_info_t* out ) const
 {
-	return track_info( out, current_track_ );
+	return Gme_File::track_info( out, current_track_ );
 }
 
 inline long Music_Emu::sample_rate() const          { return sample_rate_; }

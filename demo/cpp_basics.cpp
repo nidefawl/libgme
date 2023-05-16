@@ -16,13 +16,22 @@ void handle_error( const char* str );
 
 void fwrite_be_32(unsigned int n, FILE *m)
 {
-	int h = htonl(n);
+	// do it manually
+	unsigned char h[4];
+	h[0] = (n >> 24) & 0xFF;
+	h[1] = (n >> 16) & 0xFF;
+	h[2] = (n >>  8) & 0xFF;
+	h[3] = (n >>  0) & 0xFF;
 	fwrite(&h, 1, 4, m);
 }
 
 void fwrite_be_16(unsigned short n, FILE *m)
 {
-	int h = htons(n);
+	// int h = htons(n);
+	// do it manually
+	unsigned char h[2];
+	h[0] = (n >>  8) & 0xFF;
+	h[1] = (n >>  0) & 0xFF;
 	fwrite(&h, 1, 2, m);
 }
 
@@ -117,29 +126,29 @@ int main(int argc, char **argv)
 		wave.write( buf, size );
 	}
 
-	int osc_count = 5;
+	// int osc_count = 5;
 
-	// Write MIDI file:
-	FILE *m = fopen("out.mid", "wb");
-	fwrite("MThd", 1, 4, m);
-	// MThd length:
-	fwrite_be_32(6, m);
-	// format 1:
-	fwrite_be_16(1, m);
-	// track count:
-	fwrite_be_16(osc_count, m);
-	// division:
-	fwrite_be_16(0x8000 | (((0x80 - Nes_Osc::frames_per_second) & 0x7F) << 8) | (Nes_Osc::ticks_per_frame & 0xFF), m);
+	// // Write MIDI file:
+	// FILE *m = fopen("out.mid", "wb");
+	// fwrite("MThd", 1, 4, m);
+	// // MThd length:
+	// fwrite_be_32(6, m);
+	// // format 1:
+	// fwrite_be_16(1, m);
+	// // track count:
+	// fwrite_be_16(osc_count, m);
+	// // division:
+	// fwrite_be_16(0x8000 | (((0x80 - Classic_Emu::frames_per_second) & 0x7F) << 8) | (Classic_Emu::ticks_per_frame & 0xFF), m);
 
-	for (int i = 0; i < osc_count; i++) {
-		Nes_Osc *osc = apu->get_osc(i);
-		fwrite("MTrk", 1, 4, m);
-		// MTrk length:
-		fwrite_be_32(osc->mtrk_p, m);
-		fwrite(osc->mtrk.begin(), 1, osc->mtrk_p, m);
-	}
+	// for (int i = 0; i < osc_count; i++) {
+	// 	Nes_Osc *osc = apu->get_osc(i);
+	// 	fwrite("MTrk", 1, 4, m);
+	// 	// MTrk length:
+	// 	fwrite_be_32(osc->mtrk_p, m);
+	// 	fwrite(osc->mtrk.begin(), 1, osc->mtrk_p, m);
+	// }
 
-	fclose(m);
+	// fclose(m);
 
 	// Write supporting n2m file if it didn't exist before:
 	if (sup == NULL) {

@@ -111,7 +111,8 @@ void Wave_Writer::write( const float* in, long remain, int skip )
 		assert( buf_pos <= buf_size );
 	}
 }
-
+// macro to get first 8 bits from x, which can be of any integer type signed or unsigned
+#define GET_BYTE(x) ((unsigned char) (x&0xFF))
 void Wave_Writer::close()
 {
 	if ( file )
@@ -126,21 +127,21 @@ void Wave_Writer::close()
 		unsigned char header [header_size] =
 		{
 			'R','I','F','F',
-			rs,rs>>8,           // length of rest of file
-			rs>>16,rs>>24,
+			GET_BYTE(rs),GET_BYTE(rs>>8),           // length of rest of file
+			GET_BYTE(rs>>16),GET_BYTE(rs>>24),
 			'W','A','V','E',
 			'f','m','t',' ',
 			0x10,0,0,0,         // size of fmt chunk
 			1,0,                // uncompressed format
-			chan_count,0,       // channel count
-			rate,rate >> 8,     // sample rate
-			rate>>16,rate>>24,
-			bps,bps>>8,         // bytes per second
-			bps>>16,bps>>24,
-			frame_size,0,       // bytes per sample frame
+			GET_BYTE(chan_count),0,       // channel count
+			GET_BYTE(rate),GET_BYTE(rate >> 8),     // sample rate
+			GET_BYTE(rate>>16),GET_BYTE(rate>>24),
+			GET_BYTE(bps),GET_BYTE(bps>>8),         // bytes per second
+			GET_BYTE(bps>>16),GET_BYTE(bps>>24),
+			GET_BYTE(frame_size),0,       // bytes per sample frame
 			16,0,               // bits per sample
 			'd','a','t','a',
-			ds,ds>>8,ds>>16,ds>>24// size of sample data
+			GET_BYTE(ds),GET_BYTE(ds>>8),GET_BYTE(ds>>16),GET_BYTE(ds>>24)// size of sample data
 			// ...              // sample data
 		};
 		

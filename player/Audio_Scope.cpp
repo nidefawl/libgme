@@ -25,9 +25,10 @@ int const step_unit = 1 << step_bits;
 int const erase_color = 1;
 int const draw_color = 2;
 
-Audio_Scope::Audio_Scope()
+Audio_Scope::Audio_Scope(SDL_Surface* surface)
 {
-	surface = 0;
+	screen = surface;
+	this->surface = 0;
 	buf = 0;
 }
 
@@ -41,7 +42,7 @@ Audio_Scope::~Audio_Scope()
 
 const char* Audio_Scope::init( int width, int height )
 {
-	assert( height <= 256 );
+	// assert( height <= 256 );
 	assert( !buf ); // can only call init() once
 	
 	buf = (byte*) calloc( width * sizeof *buf, 1 );
@@ -58,17 +59,14 @@ const char* Audio_Scope::init( int width, int height )
 	
 	v_offset = height / 2 - (0x10000 >> sample_shift);
 	
-	screen = SDL_SetVideoMode( width, height, 0, 0 );
-	if ( !screen )
-		return "Couldn't set video mode";
-	
 	surface = SDL_CreateRGBSurface( SDL_SWSURFACE, width, height, 8, 0, 0, 0, 0 );
-	if ( !screen )
+	if ( !surface )
 		return "Couldn't create surface";
 	
-	static SDL_Color palette [2] = { {0, 0, 0}, {0, 255, 0} };
-	SDL_SetColors( surface, palette, 1, 2 );
-	
+	static SDL_Color palette [3] = { {0, 0, 0}, {0, 255, 0}, {255, 0, 0} };
+	// SDL_SetColors( surface, palette, 1, 2 );
+
+	SDL_SetPaletteColors(surface->format->palette, palette, 0, 3);
 	return 0; // success
 }
 
@@ -103,10 +101,7 @@ const char* Audio_Scope::draw( const short* in, long count, double step )
 	
 	if ( SDL_BlitSurface( surface, &r, screen, &r ) < 0 )
 		return "Blit to screen failed";
-	
-	if ( SDL_Flip( screen ) < 0 )
-		return "Couldn't flip screen";
-	
+
 	return 0; // success
 }
 

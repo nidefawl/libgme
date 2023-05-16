@@ -213,7 +213,8 @@ blargg_err_t Nsfe_Info::load( Data_Reader& in, Nsf_Emu* nsf_emu )
 				{
 					Subset_Reader sub( &in, size ); // limit emu to nsf data
 					Remaining_Reader rem( &header, Nsf_Emu::header_size, &sub );
-					RETURN_ERR( nsf_emu->load( rem ) );
+					Music_Emu* thisMusic_Emu = nsf_emu;
+					RETURN_ERR( thisMusic_Emu->load( rem ) );
 					check( rem.remain() == 0 );
 				}
 				break;

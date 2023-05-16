@@ -15,3 +15,5 @@ install_manifest.txt
 demo/demo
 nsf2midi/nsf2midi
 *.spc
+.cache/
+build/
